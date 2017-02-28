@@ -11,7 +11,7 @@ def get_mid_text(text, left_text, right_text, start = 0):
 def uestc_login(num, password):
     url = 'http://idas.uestc.edu.cn/authserver/login?service=http://portal.uestc.edu.cn/index.portal'
     #获取lt,execution
-    u=requests.session()
+    u=requests.Session()
     u.cookies.clear()
     r=u.get(url)
     lt, end, = get_mid_text(r.text, '"lt" value="','"')
@@ -27,6 +27,7 @@ def uestc_login(num, password):
         'rmShown':'1'
         }
     r=u.post(url,data=postdata)
+    #print(r.text)
     try:
         u.cookies.get_dict()['JSESSIONID']
     except Exception:

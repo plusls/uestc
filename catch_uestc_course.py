@@ -1,6 +1,7 @@
 import requests
 import threading
 from uestc_login import uestc_login
+import optparse
 def get_mid_text(text, left_text, right_text, start = 0):
     left = text.find(left_text, start)
     if left == -1:
@@ -9,7 +10,7 @@ def get_mid_text(text, left_text, right_text, start = 0):
     right = text.find(right_text, left)
     if right == -1:
         return None
-    return (text[left:right], right)
+    return (text[left:right], left)
 def get_open_url_data(data):
     url = 'http://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id='
     while data[0] < 1000:
@@ -36,7 +37,37 @@ def get_open_url(u, threading_max = 50):
     ret.sort()
     return ret
 
-u = uestc_login('2016060106001', '')
-if u != '请检查账号密码':
-    a = get_open_url(u, threading_max = 50)
-    print(a)
+def catch_course(u, port, id, choose = True):
+    while True:
+        postdata = {'operator0': '%s:%s:0' % (str(id), str(choose).lower())}
+        r = u.get(url = 'http://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id=917') #获取jesession
+        r = u.post('http://eams.uestc.edu.cn/eams/stdElectCourse!batchOperator.action?profileId=917', data = postdata)
+        (info, end) = get_mid_text(r.text, 'text-align:left;margin:auto;">', '</br>')
+        info = info.replace(' ','').replace('\n','').replace('\t','')
+        print(info)
+        if '成功' in info:
+            break
+
+
+parser = optparse.OptionParser()
+parser.add_option('-n', '--num',
+                  help="学号")
+parser.add_option('-p', '--password',
+                  help="密码")
+parser.add_option('-g', '--getport', action = 'store_true',
+                  help="获取抢课端口")
+(options, args) = parser.parse_args()
+print(options)
+if options.num == None or options.password == None:
+    options.num = input('请输入你的学号:')
+    options.password = input('请输入你的密码:')
+#parser.add_option('-l', '--list',help="s1:c1,s2:c2,...")
+u = uestc_login(options.num, options.password)
+if u == '请检查账号密码':
+    print('密码错误')
+    exit()
+if options.getport:
+    print('url:\nhttp://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id=')
+    print('port:\n' + str(get_open_url(u, threading_max = 50)))
+    exit()
+catch_course(u, '917', 276926, True)
