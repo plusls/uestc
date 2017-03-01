@@ -108,10 +108,12 @@ if new_session is None:
     print(uestc_login.get_last_error())
     exit()
 print('登陆成功')
+'''
 if options.getport:
     print('url:\nhttp://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id=')
     print('port:\n' + str(get_open_url(new_session, threading_max=50)))
     exit()
+'''
 print('开始抢课')
 threads = []
 for i in options.list:
