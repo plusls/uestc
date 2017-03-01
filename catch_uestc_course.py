@@ -3,6 +3,8 @@ import threading
 import uestc_login
 import optparse
 import time
+import getpass
+
 def get_mid_text(text, left_text, right_text, start = 0):
     left = text.find(left_text, start)
     if left == -1:
@@ -60,14 +62,34 @@ parser.add_option('-p', '--password',
                   help="密码")
 parser.add_option('-P', '--port',
                   help="抢课端口（任意一个，可以用-g获得）")
+#parser.add_option('-t', '--time',
+#                  help="每次抢课的延时 单位为秒")
 parser.add_option('-g', '--getport', action = 'store_true',
                   help="获取抢课端口")
+parser.add_option('-l', '--list',
+                  help="课程编号 即?lesson.id=276731后的数字 格式：c1,c2,c3...")
 (options, args) = parser.parse_args()
 print(options)
 if options.num == None:
     options.num = input('请输入你的学号:')
 if options.password == None:
-    options.password = input('请输入你的密码:')
+    options.password = getpass.getpass('请输入你的密码:')
+while True:
+    if options.list != None:
+        options.list = options.list.split(',')
+        for i in range(len(options.list)):
+            try:
+                options.list = int(options.list)
+            except Exception:
+                print('课程编号输入有误')
+                break
+        else:
+            break
+    print('接下来输入课程编号')
+    print('课程编号 即?lesson.id=276731后的数字 格式：c1,c2,c3...')
+    options.list = input('请输入你的课程编号：')
+    
+print(options.list)
 while True:
     try:
         options.port = int(options.port)
@@ -75,21 +97,22 @@ while True:
         options.port = input('请输入正确的抢课端口:')
         continue
     break
-#parser.add_option('-l', '--list',help="s1:c1,s2:c2,...")
+
 u = uestc_login.login(options.num, options.password)
 if u == None:
     print(uestc_login.uestcget_last_error())
     exit()
+print('登陆成功')
+print('开始抢课')
 if options.getport:
     print('url:\nhttp://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id=')
     print('port:\n' + str(get_open_url(u, threading_max = 50)))
     exit()
 
 threads = []
-#threads.append(threading.Thread(target=catch_course, args = (u, options.port, 276926, True)))
+for i in options.list:
+    threads.append(threading.Thread(target=catch_course, args = (u, options.port, i, True, 0.5)))
+    threads[len(threads) - 1].start()
 #catch_course(u, options.port, 276926, False)
-threads.append(threading.Thread(target=catch_course, args = (u, options.port, 276640, True, 0.5)))
-for i in threads:
-    i.start()
 for i in threads:
     i.join()
