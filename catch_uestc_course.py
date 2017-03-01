@@ -2,6 +2,7 @@ import requests
 import threading
 import uestc_login
 import optparse
+import time
 def get_mid_text(text, left_text, right_text, start = 0):
     left = text.find(left_text, start)
     if left == -1:
@@ -37,17 +38,20 @@ def get_open_url(u, threading_max = 50):
     ret.sort()
     return ret
 
-def catch_course(u, port, id, choose = True):
+def catch_course(u, port, id, choose = True, sleep = 0):
+    count = 0
     while True:
         postdata = {'operator0': '%s:%s:0' % (str(id), str(choose).lower())}
         r = u.get(url = 'http://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id=917') #获取jesession
         r = u.post('http://eams.uestc.edu.cn/eams/stdElectCourse!batchOperator.action?profileId=917', data = postdata)
         (info, end) = get_mid_text(r.text, 'text-align:left;margin:auto;">', '</br>')
         info = info.replace(' ','').replace('\n','').replace('\t','')
+        count += 1
+        print('正在进行第%d次尝试    ' % (count, ))
         print(info)
         if '成功' in info:
             break
-
+        time.sleep(sleep)
 
 parser = optparse.OptionParser()
 parser.add_option('-n', '--num',
@@ -80,6 +84,12 @@ if options.getport:
     print('url:\nhttp://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id=')
     print('port:\n' + str(get_open_url(u, threading_max = 50)))
     exit()
-catch_course(u, options.port, 276926, True)
-catch_course(u, options.port, 276926, False)
-catch_course(u, options.port, 276926, True)
+
+threads = []
+#threads.append(threading.Thread(target=catch_course, args = (u, options.port, 276926, True)))
+#catch_course(u, options.port, 276926, False)
+threads.append(threading.Thread(target=catch_course, args = (u, options.port, 276640, True, 0.5)))
+for i in threads:
+    i.start()
+for i in threads:
+    i.join()
