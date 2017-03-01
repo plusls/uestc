@@ -1,65 +1,87 @@
+#!/usr/bin/env python3
+'''电子科大抢课脚本'''
 import getpass
 import optparse
 import threading
 import time
+import signal
 
 import uestc_login
 
 
 def get_mid_text(text, left_text, right_text, start=0):
-    ''' 获取中间文本 '''
+    '''获取中间文本'''
     left = text.find(left_text, start)
     if left == -1:
-        return None
+        return ('', -1)
     left += len(left_text)
     right = text.find(right_text, left)
     if right == -1:
-        return None
-    return (text[left:right], left)
+        return ('', -1)
+    return (text[left:right], right)
+
+
 def get_open_url_data(data):
     '''读取选课网页'''
-    url = 'http://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id='
     while data[0] < 1000:
         data[1].acquire()
         num = data[0]
         data[0] += 1
         data[1].release()
-        response = data[2].get(url + str(num))
+        response = data[2].get(URL[0] + str(num))
         if '学号' in response.text:
             data[1].acquire()
             data.append(num)
             data[1].release()
 
-def get_open_url(news_ession, threading_max=50):
+def get_open_url(session, threading_max=50):
     '''获取抢课端口'''
-    data = [0, threading.Lock(), news_ession]
-    threads = []
+    data = [0, threading.Lock(), session]
     while data[0] < 1000:
-        if len(threads) <= min(threading_max, 1000 - data[0]):
-            threads.append(threading.Thread(target=get_open_url_data, args=(data, )))
-            threads[len(threads) - 1].start()
-    for i in threads:
+        if len(__threads__) <= min(threading_max, 1000 - data[0]):
+            __threads__.append(threading.Thread(target=get_open_url_data, args=(data, )))
+            __threads__[len(__threads__) - 1].start()
+    for i in __threads__:
         i.join()
     ret = data[3:]
     ret.sort()
     return ret
 
-def catch_course(new_session, port, id, choose=True, sleep=0):
+def catch_course(session, port, class_info, choose=True, sleep=0):
     '''抢课'''
     count = 0
     while True:
-        postdata = {'operator0': '%s:%s:0' % (str(id), str(choose).lower())}
-        new_session.get(url = 'http://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id=%d' % port) #获取jesession
-        response = new_session.post('http://eams.uestc.edu.cn/eams/stdElectCourse!batchOperator.action?profileId=%d' % port, data=postdata)
+        postdata = {'operator0': '%s:%s:0' % (str(class_info), str(choose).lower())}
+        session.get(url=URL[0] + str(port)) #获取jesession
+        response = session.post(URL[1] + str(port), data=postdata)
         info, end = get_mid_text(response.text, 'text-align:left;margin:auto;">', '</br>')
+        if end == -1:
+            info = '网络错误！'
         info = info.replace(' ', '').replace('\n', '').replace('\t', '')
         count += 1
         print('正在进行第%d次尝试    ' % (count, ))
         print(info)
-        if '成功' in info:
+        if __quit_thread__[0] or '成功' in info:
+            __lock__.acquire()
+            __result__.append(info)
+            __lock__.release()
             break
         time.sleep(sleep)
 
+def program_quit(signum, frame):
+    '''键盘中断时调用'''
+    __quit_thread__[0] = True
+    while threading.activeCount() > 1:
+        pass
+    print('正在退出程序')
+    print('\n\n\n')
+    print('抢课结果如下:')
+    for i in range(len(__result__)):
+        print(str(i) + '.' + __result__[i])
+    exit()
+
+
+# 参数设T
 parser = optparse.OptionParser()
 parser.add_option('-n', '--num',
                   help="学号")
@@ -73,52 +95,62 @@ parser.add_option('-g', '--getport', action='store_true',
                   help="获取抢课端口")
 parser.add_option('-l', '--list',
                   help="课程编号 即?lesson.id=276731后的数字 格式：c1,c2,c3...")
-(options, args) = parser.parse_args()
-print(options)
-if options.num is None:
-    options.num = input('请输入你的学号:')
-if options.password is None:
-    options.password = getpass.getpass('请输入你的密码:')
+(__options__, __args__) = parser.parse_args()
+print(__options__)
+if __options__.num is None:
+    __options__.num = input('请输入你的学号:')
+if __options__.password is None:
+    __options__.password = getpass.getpass('请输入你的密码:')
 while True:
-    if options.list != None:
-        options.list = options.list.split(',')
-        for i in range(len(options.list)):
+    if __options__.list != None:
+        __options__.list = __options__.list.split(',')
+        for each in range(len(__options__.list)):
             try:
-                options.list[i] = int(options.list[i])
-            except Exception:
+                __options__.list[each] = int(__options__.list[each])
+            except ValueError:
                 print('课程编号输入有误')
                 break
         else:
             break
     print('接下来输入课程编号')
     print('课程编号 即?lesson.id=276731后的数字 格式：c1,c2,c3...')
-    options.list = input('请输入你的课程编号：')
-
-print(options.list)
+    __options__.list = input('请输入你的课程编号：')
+print(__options__.list)
 while True:
     try:
-        options.port = int(options.port)
-    except Exception:
-        options.port = input('请输入正确的抢课端口:')
+        __options__.port = int(__options__.port)
+    except ValueError:
+        __options__.port = input('请输入正确的抢课端口:')
         continue
     break
 
-new_session = uestc_login.login(options.num, options.password)
-if new_session is None:
+
+URL = (
+    'http://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id=',
+    'http://eams.uestc.edu.cn/eams/stdElectCourse!batchOperator.action?profileId='
+)
+__threads__ = []
+__lock__ = threading.Lock()
+__session__ = uestc_login.login(__options__.num, __options__.password)
+__result__ = []
+__quit_thread__ = [False]
+if __session__ is None:
     print(uestc_login.get_last_error())
     exit()
 print('登陆成功')
-'''
-if options.getport:
-    print('url:\nhttp://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id=')
-    print('port:\n' + str(get_open_url(new_session, threading_max=50)))
-    exit()
-'''
+
+#if __options__.getport:
+#    print('url:\n' + URL[0])
+#    print('port:\n' + str(get_open_url(new_session, threading_max=50)))
+#    exit()
+
 print('开始抢课')
-threads = []
-for i in options.list:
-    threads.append(threading.Thread(target=catch_course, args=(new_session, options.port, i, True, 0.5)))
-    threads[len(threads) - 1].start()
-#catch_course(u, options.port, 276926, False)
-for i in threads:
-    i.join()
+signal.signal(signal.SIGINT, program_quit)
+signal.signal(signal.SIGTERM, program_quit)
+for each in __options__.list:
+    __threads__.append(
+        threading.Thread(target=catch_course, args=(__session__, __options__.port, each, True, 1))
+        )
+    __threads__[len(__threads__) - 1].start()
+for each in __threads__:
+    each.join()
