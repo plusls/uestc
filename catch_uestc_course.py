@@ -79,7 +79,7 @@ while True:
         options.list = options.list.split(',')
         for i in range(len(options.list)):
             try:
-                options.list = int(options.list)
+                options.list[i] = int(options.list[i])
             except Exception:
                 print('课程编号输入有误')
                 break
