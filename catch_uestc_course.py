@@ -1,9 +1,12 @@
-import requests
-import threading
-import uestc_login
-import optparse
-import time
 import getpass
+import optparse
+import threading
+import time
+
+import requests
+
+import uestc_login
+
 
 def get_mid_text(text, left_text, right_text, start = 0):
     left = text.find(left_text, start)
