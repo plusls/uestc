@@ -1,6 +1,6 @@
 import requests
 import threading
-from uestc_login import uestc_login
+import uestc_login
 import optparse
 def get_mid_text(text, left_text, right_text, start = 0):
     left = text.find(left_text, start)
@@ -54,20 +54,32 @@ parser.add_option('-n', '--num',
                   help="学号")
 parser.add_option('-p', '--password',
                   help="密码")
+parser.add_option('-P', '--port',
+                  help="抢课端口（任意一个，可以用-g获得）")
 parser.add_option('-g', '--getport', action = 'store_true',
                   help="获取抢课端口")
 (options, args) = parser.parse_args()
 print(options)
-if options.num == None or options.password == None:
+if options.num == None:
     options.num = input('请输入你的学号:')
+if options.password == None:
     options.password = input('请输入你的密码:')
+while True:
+    try:
+        options.port = int(options.port)
+    except Exception:
+        options.port = input('请输入正确的抢课端口:')
+        continue
+    break
 #parser.add_option('-l', '--list',help="s1:c1,s2:c2,...")
-u = uestc_login(options.num, options.password)
-if u == '请检查账号密码':
-    print('密码错误')
+u = uestc_login.login(options.num, options.password)
+if u == None:
+    print(uestc_login.uestcget_last_error())
     exit()
 if options.getport:
     print('url:\nhttp://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id=')
     print('port:\n' + str(get_open_url(u, threading_max = 50)))
     exit()
-catch_course(u, '917', 276926, True)
+catch_course(u, options.port, 276926, True)
+catch_course(u, options.port, 276926, False)
+catch_course(u, options.port, 276926, True)

@@ -1,4 +1,7 @@
 import requests
+global error_text, error
+error_text = ['你的网炸了','密码错误']
+error = 0
 def get_mid_text(text, left_text, right_text, start = 0):
     left = text.find(left_text, start)
     if left == -1:
@@ -8,12 +11,16 @@ def get_mid_text(text, left_text, right_text, start = 0):
     if right == -1:
         return None
     return (text[left:right], right)
-def uestc_login(num, password):
+def login(num, password):
     url = 'http://idas.uestc.edu.cn/authserver/login?service=http://portal.uestc.edu.cn/index.portal'
     #获取lt,execution
-    u=requests.Session()
+    u=requests.session()
     u.cookies.clear()
-    r=u.get(url)
+    #r=u.get(url)
+    try:
+        r=u.get(url)
+    except requests.exceptions.ConnectionError:
+        return None
     lt, end, = get_mid_text(r.text, '"lt" value="','"')
     execution, end, = get_mid_text(r.text, '"execution" value="','"',end)
     #构造表格
@@ -27,9 +34,8 @@ def uestc_login(num, password):
         'rmShown':'1'
         }
     r=u.post(url,data=postdata)
-    #print(r.text)
-    try:
-        u.cookies.get_dict()['JSESSIONID']
-    except Exception:
-        return '请检查账号密码'
+    if '验证码' in r.text:
+        return None
     return u
+def get_last_error():
+    return error_text[error]
