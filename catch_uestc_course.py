@@ -52,7 +52,11 @@ def catch_course(session, port, class_info, choose=True, sleep=0):
     count = 0
     while True:
         postdata = {'operator0': '%s:%s:0' % (str(class_info), str(choose).lower())}
-        session.get(url=URL[0] + str(port)) #获取jesession
+        try:
+            session.get(url=URL[0] + str(port)) #获取jesession
+        except Exception:
+            print('网络错误！')
+            continue
         response = session.post(URL[1] + str(port), data=postdata)
         info, end = get_mid_text(response.text, 'text-align:left;margin:auto;">', '</br>')
         if end == -1:
