@@ -52,11 +52,6 @@ def catch_course(session, port, class_info, choose=True, sleep=0):
     count = 0
     while True:
         postdata = {'operator0': '%s:%s:0' % (str(class_info), str(choose).lower())}
-        try:
-            session.get(url=URL[0] + str(port)) #获取jesession
-        except Exception:
-            print('网络错误！')
-            continue
         response = session.post(URL[1] + str(port), data=postdata)
         info, end = get_mid_text(response.text, 'text-align:left;margin:auto;">', '</br>')
         if end == -1:
@@ -70,7 +65,18 @@ def catch_course(session, port, class_info, choose=True, sleep=0):
             __result__.append(info)
             __lock__.release()
             break
+        elif '网络错误' in info:
+            print('jesession已经过期 正在获取jesession')
+            while True:
+                try:
+                    session.get(url=URL[0] + str(port)) 
+                except Exception:
+                    print('获取获取jesession失败：网络错误！')
+                    continue
+                print('获取获取jesession成功')
+                break
         time.sleep(sleep)
+
 
 def program_quit(signum, frame):
     '''键盘中断时调用'''
@@ -153,7 +159,7 @@ signal.signal(signal.SIGINT, program_quit)
 signal.signal(signal.SIGTERM, program_quit)
 for each in __options__.list:
     __threads__.append(
-        threading.Thread(target=catch_course, args=(__session__, __options__.port, each, True, 1))
+        threading.Thread(target=catch_course, args=(__session__, __options__.port, each, True, 0))
         )
     __threads__[len(__threads__) - 1].start()
 for each in __threads__:
