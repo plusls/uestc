@@ -21,29 +21,29 @@ def get_mid_text(text, left_text, right_text, start=0):
     return (text[left:right], right)
 
 
-def get_open_url_data(data):
+def get_open_url_data(session, now):
     '''读取选课网页'''
-    while data[0] < 1000:
-        data[1].acquire()
-        num = data[0]
-        data[0] += 1
-        data[1].release()
-        response = data[2].get(URL[0] + str(num))
+    while now[0] < 1000:
+        __lock__.acquire()
+        num = now[0]
+        now[0] += 1
+        __lock__.release()
+        response = session.get(URL[0] + str(num))
         if '学号' in response.text:
-            data[1].acquire()
-            data.append(num)
-            data[1].release()
+            __lock__.acquire()
+            now.append(num)
+            __lock__.release()
 
 def get_open_url(session, threading_max=50):
     '''获取抢课端口'''
-    data = [0, threading.Lock(), session]
-    while data[0] < 1000:
-        if len(__threads__) <= min(threading_max, 1000 - data[0]):
-            __threads__.append(threading.Thread(target=get_open_url_data, args=(data, )))
+    now = [0]
+    while now[0] < 1000:
+        if len(__threads__) <= min(threading_max, 1000 - now[0]):
+            __threads__.append(threading.Thread(target=get_open_url_data, args=(session, now)))
             __threads__[len(__threads__) - 1].start()
     for i in __threads__:
         i.join()
-    ret = data[3:]
+    ret = now[1:]
     ret.sort()
     return ret
 
@@ -139,10 +139,10 @@ if __session__ is None:
     exit()
 print('登陆成功')
 
-#if __options__.getport:
-#    print('url:\n' + URL[0])
-#    print('port:\n' + str(get_open_url(new_session, threading_max=50)))
-#    exit()
+if __options__.getport:
+    print('url:\n' + URL[0])
+    print('port:\n' + str(get_open_url(__session__, threading_max=50)))
+    exit()
 
 print('开始抢课')
 signal.signal(signal.SIGINT, program_quit)
