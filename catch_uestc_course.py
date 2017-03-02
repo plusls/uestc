@@ -34,9 +34,10 @@ def get_open_url_data(session, now):
             now.append(num)
             __lock__.release()
 
+
 def get_open_url(session, threading_max=50):
     '''获取抢课端口'''
-    now = [0]
+    now = [800]
     while now[0] < 1000:
         if len(__threads__) <= min(threading_max, 1000 - now[0]):
             __threads__.append(threading.Thread(target=get_open_url_data, args=(session, now)))
@@ -47,7 +48,8 @@ def get_open_url(session, threading_max=50):
     ret.sort()
     return ret
 
-def catch_course(session, port, class_info, choose=True, sleep=0):
+
+def catch_course(session, port, class_info, name, choose=True, sleep=0):
     '''抢课'''
     count = 0
     while True:
@@ -55,12 +57,13 @@ def catch_course(session, port, class_info, choose=True, sleep=0):
         response = session.post(URL[1] + str(port), data=postdata)
         info, end = get_mid_text(response.text, 'text-align:left;margin:auto;">', '</br>')
         if end == -1:
-            info = '网络错误！'
+            info += '网络错误！'
         info = info.replace(' ', '').replace('\n', '').replace('\t', '')
+        info += '  id:%s  port:%s' % (class_info, port)
         count += 1
-        print('正在进行第%d次尝试    ' % (count, ))
+        print(name + '正在进行第%d次尝试' % (count, ))
         print(info)
-        if __quit_thread__[0] or '成功' in info:
+        if __quit_thread__[0] or '成功' in info or '本批次' in info:
             __lock__.acquire()
             __result__.append(info)
             __lock__.release()
@@ -88,21 +91,23 @@ def program_quit(signum, frame):
     print('抢课结果如下:')
     for i in range(len(__result__)):
         print(str(i) + '.' + __result__[i])
+    print('url:\n' + URL[0])
+    print('port:\n' + str(__port__))
     exit()
 
 
-# 参数设T
+
+
+# 参数设置
 parser = optparse.OptionParser()
 parser.add_option('-n', '--num',
                   help="学号")
 parser.add_option('-p', '--password',
                   help="密码")
 parser.add_option('-P', '--port',
-                  help="抢课端口（任意一个，可以用-g获得）")
-#parser.add_option('-t', '--time',
-#                  help="每次抢课的延时 单位为秒")
-parser.add_option('-g', '--getport', action='store_true',
-                  help="获取抢课端口")
+                  help="抢课端口(可选)，格式p1,p2,p3,")
+parser.add_option('-t', '--time',
+                  help="每次抢课的延时 单位为秒")
 parser.add_option('-l', '--list',
                   help="课程编号 即?lesson.id=276731后的数字 格式：c1,c2,c3...")
 (__options__, __args__) = parser.parse_args()
@@ -122,19 +127,10 @@ while True:
                 break
         else:
             break
-    print('接下来输入课程编号')
-    print('课程编号 即?lesson.id=276731后的数字 格式：c1,c2,c3...')
-    __options__.list = input('请输入你的课程编号：')
 print(__options__.list)
-while True:
-    try:
-        __options__.port = int(__options__.port)
-    except ValueError:
-        __options__.port = input('请输入正确的抢课端口:')
-        continue
-    break
 
 
+# 全局变量
 URL = (
     'http://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id=',
     'http://eams.uestc.edu.cn/eams/stdElectCourse!batchOperator.action?profileId='
@@ -149,18 +145,33 @@ if __session__ is None:
     exit()
 print('登陆成功')
 
-if __options__.getport:
-    print('url:\n' + URL[0])
-    print('port:\n' + str(get_open_url(__session__, threading_max=50)))
-    exit()
+
+#获取端口
+if __options__.port != None:
+    __port__ = __options__.port.replace(' ', '').split(',')
+
+else:
+    print('开始获取端口')
+    __port__ = get_open_url(__session__, threading_max=100)
+    __threads__ = []
+    print('端口获取完毕')
+
 
 print('开始抢课')
 signal.signal(signal.SIGINT, program_quit)
 signal.signal(signal.SIGTERM, program_quit)
-for each in __options__.list:
-    __threads__.append(
-        threading.Thread(target=catch_course, args=(__session__, __options__.port, each, True, 0))
-        )
-    __threads__[len(__threads__) - 1].start()
+for __i__ in __options__.list:
+    for __j__ in __port__[2:]:
+        __threads__.append(
+            threading.Thread(
+                target=catch_course, args=(
+                    __session__, int(__j__),
+                    __i__, '[Thread-%d]' % (len(__threads__) + 1), True, 0
+                    )
+                )
+            )
+        __threads__[len(__threads__) - 1].start()
+
+
 for each in __threads__:
     each.join()
