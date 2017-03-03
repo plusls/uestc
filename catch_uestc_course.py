@@ -28,11 +28,15 @@ def get_open_url_data(session, now):
         num = now[0]
         now[0] += 1
         __lock__.release()
-        response = session.get(URL[0] + str(num))
-        if '学号' in response.text:
-            __lock__.acquire()
-            now.append(num)
-            __lock__.release()
+        while True:
+            response = session.get(URL[0] + str(num))
+            if '学号' in response.text:
+                __lock__.acquire()
+                now.append(num)
+                __lock__.release()
+            if '(possibly due to' not in response.text:
+                break
+
 
 
 def get_open_url(session, threading_max=50):
@@ -63,7 +67,7 @@ def catch_course(session, port, class_info, name, choose=True, sleep=0):
         count += 1
         print(name + '正在进行第%d次尝试' % (count, ))
         print(info)
-        if __quit_thread__[0] or '成功' in info or '本批次' in info:
+        if __quit_thread__[0] or '成功' in info or '本批次' in info or '只开放给' in info:
             __lock__.acquire()
             __result__.append(info)
             __lock__.release()
@@ -72,12 +76,15 @@ def catch_course(session, port, class_info, name, choose=True, sleep=0):
             print('jesession已经过期 正在获取jesession')
             while True:
                 try:
-                    session.get(url=URL[0] + str(port)) 
+                    response = session.get(url=URL[0] + str(port)) 
                 except Exception:
                     print('获取获取jesession失败：网络错误！')
                     continue
-                print('获取获取jesession成功')
-                break
+                if '(possibly due to' not in response.text:
+                    print('获取获取jesession成功')
+                    break
+                else:
+                    print('获取获取jesession失败：傻逼你电抽风了！')
         time.sleep(sleep)
 
 
@@ -110,13 +117,15 @@ parser.add_option('-t', '--time',
                   help="每次抢课的延时 单位为秒")
 parser.add_option('-l', '--list',
                   help="课程编号 即?lesson.id=276731后的数字 格式：c1,c2,c3...")
+parser.add_option('-g', '--getport', action="store_true",
+                  help="只是输出端口号")
 (__options__, __args__) = parser.parse_args()
 print(__options__)
 if __options__.num is None:
     __options__.num = input('请输入你的学号:')
 if __options__.password is None:
     __options__.password = getpass.getpass('请输入你的密码:')
-while True:
+while __options__.getport is None:
     if __options__.list != None:
         __options__.list = __options__.list.split(',')
         for each in range(len(__options__.list)):
@@ -127,6 +136,9 @@ while True:
                 break
         else:
             break
+    print('课程编号 即?lesson.id=276731后的数字 格式：c1,c2,c3...')
+    __options__.list = input('请输入课程编号:')
+
 print(__options__.list)
 
 
@@ -155,6 +167,10 @@ else:
     __port__ = get_open_url(__session__, threading_max=100)
     __threads__ = []
     print('端口获取完毕')
+if __options__.getport is True:
+    print('url:\n' + URL[0])
+    print('port:\n' + str(__port__))
+    exit()
 
 
 print('开始抢课')
@@ -166,7 +182,7 @@ for __i__ in __options__.list:
             threading.Thread(
                 target=catch_course, args=(
                     __session__, int(__j__),
-                    __i__, '[Thread-%d]' % (len(__threads__) + 1), True, 0
+                    __i__, '[Thread-%d]' % (len(__threads__) + 1), True, 0.5
                     )
                 )
             )
