@@ -41,7 +41,7 @@ def get_open_url_data(session, now):
 
 def get_open_url(session, threading_max=50):
     '''获取抢课端口'''
-    now = [800]
+    now = [0]
     while now[0] < 1000:
         if len(__threads__) <= min(threading_max, 1000 - now[0]):
             __threads__.append(threading.Thread(target=get_open_url_data, args=(session, now)))
