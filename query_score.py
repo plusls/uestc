@@ -8,6 +8,9 @@ import smtplib
 import time
 from email.header import Header
 from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+
 
 import lxml.etree
 
@@ -27,25 +30,32 @@ def get_mid_text(text, left_text, right_text, start=0):
     return (text[left:right], right)
 
 
-def start_query_score(session, semester, sleep_time=5, receivers = ['plusls@qq.com']):
+def start_query_score(session, semester, sleep_time=5, receivers=['plusls@qq.com'], filename='out.xlsx'):
     '''开始查询成绩'''
     old_score_data = query_score(session, semester)
     new_score_data = []
     while True:
+        new_score_data = query_score(session, semester)
         if old_score_data != new_score_data:
-            send_message(new_score_data, receivers)
+            send_message(filename, new_score_data, receivers)
             old_score_data = new_score_data
             print('成绩已更新，已发送邮件通知')
+        else:
+            print(time.strftime("[%Y-%m-%d %H:%M:%S]", time.localtime()) + '成绩并没有更新')
         time.sleep(sleep_time)
 
 
-def send_message(score_data, receivers):
+def send_message(filename, score_data, receivers):
     '''发送邮件'''
     sender = "plusls@qq.com"
-    message = MIMEText('你的成绩已经更新', 'plain', 'utf-8')
+    message = MIMEMultipart()
     message['From'] = Header('来自plusls', 'utf-8')
     message['To'] = Header('测试标题', 'utf-8')
     message['Subject'] = Header('你的成绩已经更新', 'utf-8')
+    xlsxpart = MIMEApplication(open(filename, 'rb').read())
+    xlsxpart.add_header('Content-Disposition', 'attachment', filename='成绩.xlsx')
+    message.attach(xlsxpart)
+    message.attach(MIMEText('你的成绩已经更新', 'plain', 'utf-8'))
     try:
         smtpObj = smtplib.SMTP_SSL()
         smtpObj.connect('smtp.qq.com', 465)
@@ -69,14 +79,29 @@ def query_score(session, semester):
     selector = lxml.etree.HTML(response.text)
     content = selector.xpath('/html/body/div/table/tbody/tr/td/text()')
     ret = []
+    average_gpa = 0
+    average_score = 0
+    sum_credit = 0
     for i in range(len(content))[::10]:
-        tmp = []
-        for j in range(10):
+        tmp = [content[i].replace('\n', '').replace('\t', '').replace('\r', '').replace(' ', '-')]
+        for j in range(1,10):
             tmp.append(content[i + j].replace('\n', '').replace('\t', '').replace('\r', ''))
+        sum_credit += int(tmp[5])
+        average_score += int(tmp[8]) * int(tmp[5])
+        average_gpa += float(tmp[9]) * int(tmp[5])
+        ret.append(tmp)
+    if len(content) > 0:
+        average_score /= sum_credit
+        average_gpa /= sum_credit
+        tmp = [tmp[0]]
+        tmp[1:] = ['NULL', 'NULL', '平均', 'NULL', 'NULL', 'NULL', 'NULL',
+            '%.3f' % average_score,
+            '%.3f' % average_gpa
+        ]
         ret.append(tmp)
     return ret
 
-    
+
 def get_now_semesterid(session):
     '''获取当前semesterid'''
     while True:
@@ -126,10 +151,13 @@ def get_semesterid(session, now_semesterid):
 
 def save_score(file_name, score_data):
     '''保存成绩'''
-    os.remove(file_name)
+    try:
+        os.remove(file_name)
+    except Exception:
+        pass
     workbook = xlsxwriter.Workbook(file_name)  #创建一个excel文件
     worksheet = workbook.add_worksheet()
-    text = ['学年学期','课程代码','课程序号','课程名称','课程类别','学分','总评成绩','补考总评','最终','绩点']
+    text = ['学年学期', '课程代码', '课程序号', '课程名称', '课程类别', '学分', '总评成绩', '补考总评', '最终', '绩点']
     for i in range(len(text)):
         worksheet.write(0, i, text[i])
     for i in range(len(score_data)):
@@ -137,6 +165,7 @@ def save_score(file_name, score_data):
             worksheet.write(i + 1, j, score_data[i][j])
     worksheet.set_column(0, len(score_data[i]), 15)
     workbook.close()
+
 
 # 参数设置
 parser = optparse.OptionParser()
@@ -148,7 +177,9 @@ parser.add_option('-t', '--time',
                   help='每次查询的延时 单位为秒')
 parser.add_option('-s', '--semester',
                   help='学期 如 2016-2017-1')
-parser.add_option('-a', '--always', action="store_true",
+parser.add_option('-a', '--all', action="store_true",
+                  help="查询所有")
+parser.add_option('-A', '--always', action="store_true",
                   help="一直查询")
 (__options__, __args__) = parser.parse_args()
 print(__options__)
@@ -193,5 +224,5 @@ else:
     __score_data__ = query_score(__session__, __options__.semester)
     save_score('out.xlsx', __score_data__)
     print('[OK]')
-    print('数据已写入out.csv')
-    send_message(__score_data__, ['plusls@qq.com'])
+    print('数据已写入out.xlsx')
+    #send_message(__score_data__, ['plusls@qq.com'])
