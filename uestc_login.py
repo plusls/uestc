@@ -45,6 +45,10 @@ def login(num, password):
     if '验证码' in response.text:
         __error__[0] = 1
         return None
+    response = new_session.get('http://eams.uestc.edu.cn/eams/courseTableForStd.action')
+    if '踢出' in response.text:
+        click_url = get_mid_text(response.text, '请<a href="', '"')
+        new_session.get(click_url[0])
     return new_session
 
 
