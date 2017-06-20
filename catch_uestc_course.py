@@ -28,6 +28,8 @@ def get_open_url_data(session, now):
         num = now[0]
         now[0] += 1
         __lock__.release()
+        if num % 100 == 0:
+            print(num);
         while True:
             response = session.get(URL[0] + str(num))
             if '学号' in response.text:
@@ -177,7 +179,7 @@ print('开始抢课')
 signal.signal(signal.SIGINT, program_quit)
 signal.signal(signal.SIGTERM, program_quit)
 for __i__ in __options__.list:
-    for __j__ in __port__[2:]:
+    for __j__ in __port__:
         __threads__.append(
             threading.Thread(
                 target=catch_course, args=(
