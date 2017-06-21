@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 '''电子科技大学登陆'''
 import requests
 __error__ = [0]

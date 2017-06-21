@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding:utf-8 -*-
 '''电子科大抢课脚本'''
 import getpass
 import json

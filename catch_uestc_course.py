@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding:utf-8 -*-
 '''电子科大抢课脚本'''
 import getpass
 import optparse
@@ -23,7 +24,7 @@ def get_mid_text(text, left_text, right_text, start=0):
 
 def get_open_url_data(session, now):
     '''读取选课网页'''
-    while now[0] < 1000:
+    while now[0] < 2000:
         __lock__.acquire()
         num = now[0]
         now[0] += 1
@@ -44,8 +45,8 @@ def get_open_url_data(session, now):
 def get_open_url(session, threading_max=50):
     '''获取抢课端口'''
     now = [0]
-    while now[0] < 1000:
-        if len(__threads__) <= min(threading_max, 1000 - now[0]):
+    while now[0] < 2000:
+        if len(__threads__) <= min(threading_max, 2000 - now[0]):
             __threads__.append(threading.Thread(target=get_open_url_data, args=(session, now)))
             __threads__[len(__threads__) - 1].start()
     for i in __threads__:
@@ -69,7 +70,7 @@ def catch_course(session, port, class_info, name, choose=True, sleep=0):
         count += 1
         print(name + '正在进行第%d次尝试' % (count, ))
         print(info)
-        if __quit_thread__[0] or '成功' in info or '本批次' in info or '只开放给' in info:
+        if __quit_thread__[0] or '成功' in info or '本批次' in info or '只开放给' in info or '学分已达上限' in info:
             __lock__.acquire()
             __result__.append(info)
             __lock__.release()
@@ -104,7 +105,28 @@ def program_quit(signum, frame):
     print('port:\n' + str(__port__))
     exit()
 
-
+'''
+def send_message(filename, score_data, receivers):
+    '''发送邮件'''
+    sender = "plusls@qq.com"
+    message = MIMEMultipart()
+    message['From'] = Header('来自plusls', 'utf-8')
+    message['To'] = Header('测试标题', 'utf-8')
+    message['Subject'] = Header('你的成绩已经更新', 'utf-8')
+    xlsxpart = MIMEApplication(open(filename, 'rb').read())
+    xlsxpart.add_header('Content-Disposition', 'attachment', filename='成绩.xlsx')
+    message.attach(xlsxpart)
+    message.attach(MIMEText('你的课程已抢到', 'plain', 'utf-8'))
+    try:
+        smtpObj = smtplib.SMTP_SSL()
+        smtpObj.connect('smtp.qq.com', 465)
+        smtpObj.login(sender, '15607516755a')
+        smtpObj.sendmail(sender, receivers,message.as_string())
+        smtpObj.quit()
+        print('邮件已成功发送了')
+    except smtplib.SMTPException as e:
+        print(e)
+'''
 
 
 # 参数设置
