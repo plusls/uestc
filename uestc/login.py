@@ -1,8 +1,8 @@
 # -*- coding:utf-8 -*-
 '''电子科技大学登陆模块'''
 import requests
-__error__ = [0]
-__all__ = ['login', 'get_last_error']
+from .exceptions import LoginError
+
 def get_mid_text(text, left_text, right_text, start=0):
     '''获取中间文本'''
     left = text.find(left_text, start)
@@ -21,16 +21,15 @@ def login(num, password):
     # 获取lt,execution
     new_session = requests.session()
     new_session.cookies.clear()
-    # r=u.get(url)
     try:
         response = new_session.get(url)
     except requests.exceptions.ConnectionError:
-        __error__[0] = 0
-        return None
+        raise LoginError('无法连接电子科大网络')
+
     lt_data, end = get_mid_text(response.text, '"lt" value="', '"')
     if end == -1:
-        __error__[0] = 0
-        return None
+        raise LoginError('登录信息获取失败')
+
     execution, end = get_mid_text(response.text, '"execution" value="', '"', end)
     # 构造表格
     postdata = {
@@ -43,17 +42,14 @@ def login(num, password):
         'rmShown':'1'
         }
     response = new_session.post(url, data=postdata)
-    if '验证码' in response.text:
-        __error__[0] = 1
-        return None
+    if '密码有误' in response.text:
+        raise LoginError('密码错误')
+
+    elif '验证码' in response.text:
+        raise LoginError('出现验证码，请在浏览器登陆一次信息门户')
+
     response = new_session.get('http://eams.uestc.edu.cn/eams/courseTableForStd.action')
     if '踢出' in response.text:
         click_url = get_mid_text(response.text, '请<a href="', '"')
         new_session.get(click_url[0])
     return new_session
-
-
-def get_last_error():
-    '''获取最后一次登录失败的错误'''
-    error_text = ['你的网炸了', '密码错误']
-    return error_text[__error__[0]]

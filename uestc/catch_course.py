@@ -3,15 +3,22 @@
 '''电子科大抢课脚本'''
 import getpass
 import optparse
+import argparse
 import threading
 import time
 import signal
 
-import uestc_login
+from .login import login
+
+_lalala = 1
 
 
 def get_mid_text(text, left_text, right_text, start=0):
     '''获取中间文本'''
+    global _lalala
+    _lalala += 1
+    print(_lalala)
+
     left = text.find(left_text, start)
     if left == -1:
         return ('', -1)
@@ -42,8 +49,8 @@ def get_open_url_data(session, now):
 
 
 
-def get_open_url(session, threading_max=50):
-    '''获取抢课端口'''
+def get_open_entrance(session, threading_max=50):
+    '''获取抢课通道'''
     now = [0]
     while now[0] < 2000:
         if len(__threads__) <= min(threading_max, 2000 - now[0]):
@@ -105,9 +112,8 @@ def program_quit(signum, frame):
     print('port:\n' + str(__port__))
     exit()
 
-
+'''
 def send_message(filename, score_data, receivers):
-    '''发送邮件'''
     sender = "plusls@qq.com"
     message = MIMEMultipart()
     message['From'] = Header(' ', 'utf-8')
@@ -126,7 +132,7 @@ def send_message(filename, score_data, receivers):
         print('邮件已成功发送了')
     except smtplib.SMTPException as e:
         print(e)
-
+'''
 
 
 # 参数设置
