@@ -16,8 +16,41 @@
 
 成功则返回一个request模块的session
 
+```python
+>>> uestc.login('2016060106001','123456')
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/mnt/c/Users/plusl/code/uestc/uestc/login.py", line 48, in login
+    raise LoginError('密码错误')
+uestc.exceptions.LoginError: 密码错误
+>>> uestc.login('201606*********','******')
+<requests.sessions.Session object at 0x7f2a8e83eb00>
+```
+
+
+
 ## uestc.catch_course
 抢课模块
 
-施工中
+####  catch_course
+
+抢课
+
+例：
+
+```python
+>>> import uestc
+>>> session=uestc.login('201606*********','******')
+>>> uestc.catch_course.catch_course(session, [998], [283884])
+>>> uestc.catch_course.catch_course(session, [998], [283884])
+^C{283884: {998: 1}}
+```
+
+#### choose_course
+
+选课并返回结果
+
+#### get_open_entrance
+
+获取选课通道
 

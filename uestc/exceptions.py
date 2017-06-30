@@ -9,4 +9,3 @@ class LoginError(Exception):
 class CatchCourseError(Exception):
     '''抢课异常'''
 
-
