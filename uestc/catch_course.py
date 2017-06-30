@@ -1,24 +1,17 @@
-#!/usr/bin/env python3
 # -*- coding:utf-8 -*-
-'''电子科大抢课脚本'''
-import getpass
-import optparse
-import argparse
+'''电子科大抢课模块'''
 import threading
 import time
+import requests
 import signal
-
-from .login import login
-
-_lalala = 1
+from .exceptions import CatchCourseError
 
 
-def get_mid_text(text, left_text, right_text, start=0):
+__all__ = ["get_open_entrance"]
+__CATCH_COURSE_URL = "http://eams.uestc.edu.cn/eams/stdElectCourse!batchOperator.action?profileId="
+
+def __get_mid_text(text, left_text, right_text, start=0):
     '''获取中间文本'''
-    global _lalala
-    _lalala += 1
-    print(_lalala)
-
     left = text.find(left_text, start)
     if left == -1:
         return ('', -1)
@@ -29,40 +22,69 @@ def get_mid_text(text, left_text, right_text, start=0):
     return (text[left:right], right)
 
 
-def get_open_url_data(session, now):
+def __get_open_url_data(login_session, todo_list, ret_list, thread_lock, display_result):
     '''读取选课网页'''
-    while now[0] < 2000:
-        __lock__.acquire()
-        num = now[0]
-        now[0] += 1
-        __lock__.release()
-        if num % 100 == 0:
-            print(num);
+    while True:
+        thread_lock.acquire()
+        if todo_list:
+            now_get = todo_list.pop()
+            if display_result and now_get % 100 == 0:
+                print(now_get)
+
+        else:
+            thread_lock.release()
+            break
+
+        thread_lock.release()
         while True:
-            response = session.get(URL[0] + str(num))
+            try:
+                response = login_session.get(__CATCH_COURSE_URL + str(now_get))
+            except requests.exceptions.ConnectionError:
+                raise CatchCourseError('无法连接电子科大网络')
+
             if '学号' in response.text:
-                __lock__.acquire()
-                now.append(num)
-                __lock__.release()
+                thread_lock.acquire()
+                ret_list.append(now_get)
+                thread_lock.release()
+
+            #我也忘了下面这句干嘛的了
             if '(possibly due to' not in response.text:
                 break
 
 
+def get_open_entrance(login_session, start_entrance=0, end_entrance=2000, max_thread=50,\
+display_result=False):
+    '''获取选课通道 返回开放通道的list'''
+    ret_list = []
+    todo_list = []
+    threads = []
+    thread_lock = threading.Lock()
+    for i in range(end_entrance, start_entrance - 1, -1):
+        todo_list.append(i)
+    for i in range(0, max_thread):
+        threads.append(threading.Thread(target=__get_open_url_data, args=(login_session, todo_list,\
+        ret_list, thread_lock, display_result)))
+        threads[-1].start()
 
-def get_open_entrance(session, threading_max=50):
-    '''获取抢课通道'''
-    now = [0]
-    while now[0] < 2000:
-        if len(__threads__) <= min(threading_max, 2000 - now[0]):
-            __threads__.append(threading.Thread(target=get_open_url_data, args=(session, now)))
-            __threads__[len(__threads__) - 1].start()
-    for i in __threads__:
-        i.join()
-    ret = now[1:]
-    ret.sort()
-    return ret
+    #阻塞
+    for thread in threads:
+        thread.join()
 
+    ret_list.sort()
+    return ret_list
 
+def choose_course(login_session, entrance, class_id, choose):
+    '''选课'''
+    postdata = {'operator0': '%s:%s:0' % (str(class_id), str(choose).lower())}
+    response = login_session.post(__CATCH_COURSE_URL + str(entrance), data=postdata)
+    info, end = __get_mid_text(response.text, 'text-align:left;margin:auto;">', '</br>')
+    if end == -1:
+        info += '网络错误！'
+    info = info.replace(' ', '').replace('\n', '').replace('\t', '')
+    info += '  id:%s  entrance:%s' % (class_id, entrance)
+    return info
+
+"""
 def catch_course(session, port, class_info, name, choose=True, sleep=0):
     '''抢课'''
     count = 0
@@ -111,113 +133,4 @@ def program_quit(signum, frame):
     print('url:\n' + URL[0])
     print('port:\n' + str(__port__))
     exit()
-
-'''
-def send_message(filename, score_data, receivers):
-    sender = "plusls@qq.com"
-    message = MIMEMultipart()
-    message['From'] = Header(' ', 'utf-8')
-    message['To'] = Header('测试标题', 'utf-8')
-    message['Subject'] = Header('你的成绩已经更新', 'utf-8')
-    xlsxpart = MIMEApplication(open(filename, 'rb').read())
-    xlsxpart.add_header('Content-Disposition', 'attachment', filename='成绩.xlsx')
-    message.attach(xlsxpart)
-    message.attach(MIMEText('你的课程已抢到', 'plain', 'utf-8'))
-    try:
-        smtpObj = smtplib.SMTP_SSL()
-        smtpObj.connect('smtp.qq.com', 465)
-        smtpObj.login(sender, '15607516755a')
-        smtpObj.sendmail(sender, receivers,mesage.as_string())
-        smtpObj.quit()
-        print('邮件已成功发送了')
-    except smtplib.SMTPException as e:
-        print(e)
-'''
-
-
-# 参数设置
-parser = optparse.OptionParser()
-parser.add_option('-n', '--num',
-                  help="学号")
-parser.add_option('-p', '--password',
-                  help="密码")
-parser.add_option('-P', '--port',
-                  help="抢课端口(可选)，格式p1,p2,p3,")
-parser.add_option('-t', '--time',
-                  help="每次抢课的延时 单位为秒")
-parser.add_option('-l', '--list',
-                  help="课程编号 即?lesson.id=276731后的数字 格式：c1,c2,c3...")
-parser.add_option('-g', '--getport', action="store_true",
-                  help="只是输出端口号")
-(__options__, __args__) = parser.parse_args()
-print(__options__)
-if __options__.num is None:
-    __options__.num = input('请输入你的学号:')
-if __options__.password is None:
-    __options__.password = getpass.getpass('请输入你的密码:')
-while __options__.getport is None:
-    if __options__.list != None:
-        __options__.list = __options__.list.split(',')
-        for each in range(len(__options__.list)):
-            try:
-                __options__.list[each] = int(__options__.list[each])
-            except ValueError:
-                print('课程编号输入有误')
-                break
-        else:
-            break
-    print('课程编号 即?lesson.id=276731后的数字 格式：c1,c2,c3...')
-    __options__.list = input('请输入课程编号:')
-
-print(__options__.list)
-
-
-# 全局变量
-URL = (
-    'http://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id=',
-    'http://eams.uestc.edu.cn/eams/stdElectCourse!batchOperator.action?profileId='
-)
-__threads__ = []
-__lock__ = threading.Lock()
-__session__ = uestc_login.login(__options__.num, __options__.password)
-__result__ = []
-__quit_thread__ = [False]
-if __session__ is None:
-    print(uestc_login.get_last_error())
-    exit()
-print('登陆成功')
-
-
-#获取端口
-if __options__.port != None:
-    __port__ = __options__.port.replace(' ', '').split(',')
-
-else:
-    print('开始获取端口')
-    __port__ = get_open_url(__session__, threading_max=100)
-    __threads__ = []
-    print('端口获取完毕')
-if __options__.getport is True:
-    print('url:\n' + URL[0])
-    print('port:\n' + str(__port__))
-    exit()
-
-
-print('开始抢课')
-signal.signal(signal.SIGINT, program_quit)
-signal.signal(signal.SIGTERM, program_quit)
-for __i__ in __options__.list:
-    for __j__ in __port__:
-        __threads__.append(
-            threading.Thread(
-                target=catch_course, args=(
-                    __session__, int(__j__),
-                    __i__, '[Thread-%d]' % (len(__threads__) + 1), True, 0
-                    )
-                )
-            )
-        __threads__[len(__threads__) - 1].start()
-
-
-for each in __threads__:
-    each.join()
+"""

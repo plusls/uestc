@@ -3,7 +3,8 @@
 import requests
 from .exceptions import LoginError
 
-def get_mid_text(text, left_text, right_text, start=0):
+
+def __get_mid_text(text, left_text, right_text, start=0):
     '''获取中间文本'''
     left = text.find(left_text, start)
     if left == -1:
@@ -26,21 +27,22 @@ def login(num, password):
     except requests.exceptions.ConnectionError:
         raise LoginError('无法连接电子科大网络')
 
-    lt_data, end = get_mid_text(response.text, '"lt" value="', '"')
+    lt_data, end = __get_mid_text(response.text, '"lt" value="', '"')
     if end == -1:
         raise LoginError('登录信息获取失败')
 
-    execution, end = get_mid_text(response.text, '"execution" value="', '"', end)
+    execution, end = __get_mid_text(
+        response.text, '"execution" value="', '"', end)
     # 构造表格
     postdata = {
-        'username':num,
-        'password':password,
-        'lt':lt_data,
-        'dllt':'userNamePasswordLogin',
-        'execution':execution,
-        '_eventId':'submit',
-        'rmShown':'1'
-        }
+        'username': num,
+        'password': password,
+        'lt': lt_data,
+        'dllt': 'userNamePasswordLogin',
+        'execution': execution,
+        '_eventId': 'submit',
+        'rmShown': '1'
+    }
     response = new_session.post(url, data=postdata)
     if '密码有误' in response.text:
         raise LoginError('密码错误')
@@ -48,8 +50,9 @@ def login(num, password):
     elif '验证码' in response.text:
         raise LoginError('出现验证码，请在浏览器登陆一次信息门户')
 
-    response = new_session.get('http://eams.uestc.edu.cn/eams/courseTableForStd.action')
+    response = new_session.get(
+        'http://eams.uestc.edu.cn/eams/courseTableForStd.action')
     if '踢出' in response.text:
-        click_url = get_mid_text(response.text, '请<a href="', '"')
+        click_url = __get_mid_text(response.text, '请<a href="', '"')
         new_session.get(click_url[0])
     return new_session
