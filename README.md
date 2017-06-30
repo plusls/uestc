@@ -3,9 +3,21 @@
 
 涉及登录，查分，抢课等功能
 
-## uestc_login
-提供了登陆uestc的接口   
-若是账号密码错误，会返回个文本   
-否则返回一个request的session
-## catch_uestc_course
-uestc的抢课脚本，施工中
+## uestc.exceptions
+
+异常
+
+## uestc.login
+登录模块
+
+提供了登陆uestc的接口
+
+登录失败会抛出异常
+
+成功则返回一个request模块的session
+
+## uestc.catch_course
+抢课模块
+
+施工中
+
