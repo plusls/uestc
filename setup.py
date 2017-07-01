@@ -13,7 +13,7 @@ setup(author=uestc.__author__,
       description=uestc.__doc__,
       url="https://github.com/plusIs/uestc",
       install_requires=['beautifulsoup4>=4.6.0',
-                        'requests>=2.17.3'],
+                        'requests>=2.17.0'],
       classifiers=[
           'Environment :: Console',
           'Programming Language :: Python :: 3',

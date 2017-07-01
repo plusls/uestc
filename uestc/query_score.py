@@ -3,7 +3,6 @@
 '''电子科大抢课脚本'''
 import getpass
 import json
-import optparse
 import os
 import smtplib
 import time
@@ -19,7 +18,7 @@ import uestc_login
 import xlsxwriter
 
 
-def get_mid_text(text, left_text, right_text, start=0):
+def __get_mid_text(text, left_text, right_text, start=0):
     '''获取中间文本'''
     left = text.find(left_text, start)
     if left == -1:
