@@ -4,7 +4,6 @@ import threading
 import time
 import signal
 import requests
-from .exceptions import CatchCourseError
 
 
 __all__ = ["get_open_entrance", "choose_course",
@@ -14,7 +13,7 @@ __CATCH_COURSE_URL = "http://eams.uestc.edu.cn/eams/stdElectCourse!batchOperator
 __EXIT_THREAD = False
 __CATCH_COURSE_RESULT = []
 __EXIT_TEXT_LIST = ['本批次', '只开放给', '学分已达上限', '现在未到选课时间']
-__EXIT_TEXT_LIST = ['本批次', '只开放给', '学分已达上限']
+#__EXIT_TEXT_LIST = ['本批次', '只开放给', '学分已达上限']
 
 
 def __get_mid_text(text, left_text, right_text, start=0):
@@ -44,10 +43,7 @@ def __get_open_url_data(login_session, todo_list, ret_list, thread_lock, display
 
         thread_lock.release()
         while True:
-            try:
-                response = login_session.get(__CATCH_COURSE_URL + str(now_get))
-            except requests.exceptions.ConnectionError:
-                raise CatchCourseError('无法连接电子科大网络')
+            response = login_session.get(__CATCH_COURSE_URL + str(now_get))
 
             if '学号' in response.text:
                 thread_lock.acquire()

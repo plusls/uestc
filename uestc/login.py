@@ -22,10 +22,7 @@ def login(num, password):
     # 获取lt,execution
     new_session = requests.session()
     new_session.cookies.clear()
-    try:
-        response = new_session.get(url)
-    except requests.exceptions.ConnectionError:
-        raise LoginError('无法连接电子科大网络')
+    response = new_session.get(url)
 
     lt_data, end = __get_mid_text(response.text, '"lt" value="', '"')
     if end == -1:
