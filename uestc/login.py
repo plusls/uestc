@@ -1,11 +1,11 @@
 # -*- coding:utf-8 -*-
-'''电子科技大学登陆模块'''
+"""电子科技大学登陆模块"""
 import requests
 from .exceptions import LoginError
 
 
 def __get_mid_text(text, left_text, right_text, start=0):
-    '''获取中间文本'''
+    """获取中间文本"""
     left = text.find(left_text, start)
     if left == -1:
         return ('', -1)
@@ -17,7 +17,7 @@ def __get_mid_text(text, left_text, right_text, start=0):
 
 
 def login(num, password):
-    '''登陆并返回一个requests模块的session'''
+    """登陆并返回一个requests模块的session"""
     url = 'http://idas.uestc.edu.cn/authserver/login?service='
     # 获取lt,execution
     new_session = requests.session()

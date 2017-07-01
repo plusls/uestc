@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-'''电子科大抢课模块'''
+"""电子科大抢课模块"""
 import threading
 import time
 import signal
@@ -18,7 +18,7 @@ __EXIT_TEXT_LIST = ['本批次', '只开放给', '学分已达上限']
 
 
 def __get_mid_text(text, left_text, right_text, start=0):
-    '''获取中间文本'''
+    """获取中间文本"""
     left = text.find(left_text, start)
     if left == -1:
         return ('', -1)
@@ -30,7 +30,7 @@ def __get_mid_text(text, left_text, right_text, start=0):
 
 
 def __get_open_url_data(login_session, todo_list, ret_list, thread_lock, display_result):
-    '''读取选课网页'''
+    """读取选课网页"""
     while True:
         thread_lock.acquire()
         if todo_list:
@@ -61,7 +61,7 @@ def __get_open_url_data(login_session, todo_list, ret_list, thread_lock, display
 
 def get_open_entrance(login_session, start_entrance=0, end_entrance=2000, max_thread=50,
                       display_result=False):
-    '''获取选课通道 返回开放通道的list'''
+    """获取选课通道 返回开放通道的list"""
     ret_list = []
     todo_list = []
     threads = []
@@ -83,7 +83,7 @@ def get_open_entrance(login_session, start_entrance=0, end_entrance=2000, max_th
 
 
 def choose_course(login_session, entrance, class_id, choose):
-    '''选课 class_id为int'''
+    """选课 class_id为int"""
     postdata = {'operator0': '%s:%s:0' % (str(class_id), str(choose).lower())}
     response = login_session.post(
         __CATCH_COURSE_URL + str(entrance), data=postdata)
@@ -147,13 +147,13 @@ def __catch_course(login_session, entrance, class_id, thread_name,
 
 def catch_course(login_session, entrance_list, class_id_list, choose=True, sleep=0, max_thread=5,
                  display_text=False):
-    '''抢课
+    """抢课
     该函数执行后除非所有课程抢到，否则不会结束
     以及该函数会捕获中断信号
     中断后会输出选课结果
     将会返回一个dict 表示选课结果
     entrance与class_id均为int
-    若dict为0表示选课成功，为其他值则为失败'''
+    若dict为0表示选课成功，为其他值则为失败"""
     global __EXIT_THREAD
     __EXIT_THREAD = False
     __CATCH_COURSE_RESULT.clear()
@@ -193,7 +193,7 @@ def catch_course(login_session, entrance_list, class_id_list, choose=True, sleep
 
 
 def catch_course_quit(signum, frame):
-    '''键盘中断时调用'''
+    """键盘中断时调用"""
     global __EXIT_THREAD
     __EXIT_THREAD = True
     while threading.activeCount() > 1:
@@ -201,7 +201,7 @@ def catch_course_quit(signum, frame):
 
 
 def display_catch_course_result():
-    '''输出抢课结果'''
+    """输出抢课结果"""
     print('正在停止抢课')
     print('\n\n\n')
     print('抢课结果如下:')
