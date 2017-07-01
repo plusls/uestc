@@ -1,7 +1,9 @@
 # -*- coding:utf-8 -*-
-"""成绩查询"""
+"""查询信息"""
 import json
-
+from .exceptions import QueryScoreError
+from bs4 import BeautifulSoup
+__all__ = ['get_now_semesterid', 'get_semesterid_data', 'get_score']
 
 
 
@@ -18,56 +20,58 @@ def __get_mid_text(text, left_text, right_text, start=0):
 
 
 
-'''
-def query_score(session, semester):
-    """查询成绩"""
-    while True:
-        try:
-            response = session.get(URL[3] % __semesterid_data__[semester])
-        except:
-            continue
-        if '学年' in response.text:
-            break
-    selector = lxml.etree.HTML(response.text)
-    content = selector.xpath('/html/body/div/table/tbody/tr/td/text()')
+def get_score(login_session, semester):
+    """查询成绩
+    semester样例：2015-2016-2
+    返回一个list的嵌套
+    格式为
+    [[学年学期,课程代码,课程序号,课程名称,课程类别,学分,总评成绩,补考总评,最终,绩点]]
+    最后一行为加权平均值"""
+    semesterid_data = get_semesterid_data(login_session)
+    response = login_session.get('http://eams.uestc.edu.cn/eams/teach/grade/course/person!search.action?semesterId=%d' % semesterid_data[semester])
+    soup = BeautifulSoup(response.text, 'html.parser')
+    result = soup.find_all('td')
     ret = []
+
+    for i in range(len(result)):
+        result[i].string = result[i].string.replace('\n', '').replace('\r', '').replace('\t', '').replace(' ', '')
+    for i in range(len(result) // 10):
+        ret.append(result[i * 10 : i * 10 + 10])
+        for j in range(len(ret[i])):
+            ret[i][j] = ret[i][j].string
     average_gpa = 0
     average_score = 0
     sum_credit = 0
-    for i in range(len(content))[::10]:
-        tmp = [content[i].replace('\n', '').replace('\t', '').replace('\r', '').replace(' ', '-')]
-        for j in range(1,10):
-            tmp.append(content[i + j].replace('\n', '').replace('\t', '').replace('\r', ''))
-        sum_credit += int(tmp[5])
-        average_score += int(tmp[8]) * int(tmp[5])
-        average_gpa += float(tmp[9]) * int(tmp[5])
-        ret.append(tmp)
-    if len(content) > 0:
+    for score_info in ret:
+        sum_credit += int(score_info[5])
+        average_score += int(score_info[8]) * int(score_info[5])
+        average_gpa += int(score_info[9]) * int(score_info[5])
+    if sum_credit > 0:
         average_score /= sum_credit
         average_gpa /= sum_credit
-        tmp = [tmp[0]]
-        tmp[1:] = ['NULL', 'NULL', '平均', 'NULL', 'NULL', 'NULL', 'NULL',
-            '%.3f' % average_score,
-            '%.3f' % average_gpa
-        ]
-        ret.append(tmp)
+    tmp = ['None'] * 10
+    tmp[5] = str(sum_credit)
+    tmp[8] = '%.3f' % average_score
+    tmp[9] = '%.3f' % average_gpa
+    ret.append(tmp)
     return ret
-'''
 
 def get_now_semesterid(login_session):
     """获取当前semesterid并返回int 失败则抛出异常"""
     response = login_session.get('http://eams.uestc.edu.cn/eams/teach/grade/course/person.action')
     data = __get_mid_text(response.text, 'semesterId=', '&')
+    if data[1] == -1:
+        raise QueryScoreError('当前semesterid获取失败')
     ret = int(data[0])
     return ret
 
 
-def get_semesterid(login_session):
+def get_semesterid_data(login_session):
     """获取学期对应的semesterid信息 成功则返回dict"""
     post_data = {
         'dataType':'semesterCalendar',
     }
-    #将得到的数据转换为json
+    # 将得到的数据转换为json
     response = login_session.post('http://eams.uestc.edu.cn/eams/dataQuery.action', post_data)
     response_text = response.text
     response_text = response.text.replace('yearDom', '"yearDom"')
@@ -86,7 +90,7 @@ def get_semesterid(login_session):
             i += 1
         else:
             break
-    #json转为dict并提取为有用的数据
+    # json转为dict并提取为有用的数据
     semesterid_data = json.loads(response_text)['semesters']
     ret = {}
     for i in semesterid_data:
