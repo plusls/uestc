@@ -1,16 +1,20 @@
 """setup.py"""
 from setuptools import setup, find_packages
-import uestc
 
-setup(author=uestc.__author__,
+__version__ = "1.1.2"
+__author__ = "plusls<plusls@qq.com>"
+__name__ = "uestc"
+__doc__ = "一个和电子科大有关的模块"
+
+setup(author=__author__,
       author_email='plusls@qq.com',
-      maintainer=uestc.__author__,
-      name=uestc.__name__,
+      maintainer=__author__,
+      name=__name__,
       packages=find_packages(exclude=('test', 'test.*')),
       long_description=open('README.rst', encoding='utf-8').read(),
-      version=uestc.__version__,
+      version=__version__,
       keywords='uestc catch course login',
-      description=uestc.__doc__,
+      description=__doc__,
       url="https://github.com/plusIs/uestc",
       install_requires=['bs4>=0.0.1',
                         'requests>=2.17'],
