@@ -1,25 +1,12 @@
-#!/usr/bin/env python3
 # -*- coding:utf-8 -*-
-'''电子科大抢课脚本'''
-import getpass
+"""成绩查询"""
 import json
-import os
-import smtplib
-import time
-from email.header import Header
-from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
-from email.mime.multipart import MIMEMultipart
 
 
-import lxml.etree
-
-import uestc_login
-import xlsxwriter
 
 
 def __get_mid_text(text, left_text, right_text, start=0):
-    '''获取中间文本'''
+    """获取中间文本"""
     left = text.find(left_text, start)
     if left == -1:
         return ('', -1)
@@ -30,45 +17,10 @@ def __get_mid_text(text, left_text, right_text, start=0):
     return (text[left:right], right)
 
 
-def start_query_score(session, semester, sleep_time=5, receivers=['plusls@qq.com'], filename='out.xlsx'):
-    '''开始查询成绩'''
-    old_score_data = query_score(session, semester)
-    new_score_data = []
-    while True:
-        new_score_data = query_score(session, semester)
-        if old_score_data != new_score_data:
-            send_message(filename, new_score_data, receivers)
-            old_score_data = new_score_data
-            print('成绩已更新，已发送邮件通知')
-        else:
-            print(time.strftime("[%Y-%m-%d %H:%M:%S]", time.localtime()) + '成绩并没有更新')
-        time.sleep(sleep_time)
 
-
-def send_message(filename, score_data, receivers):
-    '''发送邮件'''
-    sender = "plusls@qq.com"
-    message = MIMEMultipart()
-    message['From'] = Header('来自plusls', 'utf-8')
-    message['To'] = Header('测试标题', 'utf-8')
-    message['Subject'] = Header('你的成绩已经更新', 'utf-8')
-    xlsxpart = MIMEApplication(open(filename, 'rb').read())
-    xlsxpart.add_header('Content-Disposition', 'attachment', filename='成绩.xlsx')
-    message.attach(xlsxpart)
-    message.attach(MIMEText('你的成绩已经更新', 'plain', 'utf-8'))
-    try:
-        smtpObj = smtplib.SMTP_SSL()
-        smtpObj.connect('smtp.qq.com', 465)
-        smtpObj.login(sender, '15607516755a')
-        smtpObj.sendmail(sender, receivers,message.as_string())
-        smtpObj.quit()
-        print('邮件已成功发送了')
-    except smtplib.SMTPException as e:
-        print(e)
-
-
+'''
 def query_score(session, semester):
-    '''查询成绩'''
+    """查询成绩"""
     while True:
         try:
             response = session.get(URL[3] % __semesterid_data__[semester])
@@ -100,30 +52,23 @@ def query_score(session, semester):
         ]
         ret.append(tmp)
     return ret
+'''
+
+def get_now_semesterid(login_session):
+    """获取当前semesterid并返回int 失败则抛出异常"""
+    response = login_session.get('http://eams.uestc.edu.cn/eams/teach/grade/course/person.action')
+    data = __get_mid_text(response.text, 'semesterId=', '&')
+    ret = int(data[0])
+    return ret
 
 
-def get_now_semesterid(session):
-    '''获取当前semesterid'''
-    while True:
-        response = session.get(URL[0])
-        try:
-            data = get_mid_text(response.text, 'semesterId=', '&')
-            ret = int(data[0])
-        except Exception:
-            print('获取当前semesterid失败，正在重试')
-            continue
-        return ret
-
-
-def get_semesterid(session, now_semesterid):
-    '''获取semesterid'''
+def get_semesterid(login_session):
+    """获取学期对应的semesterid信息 成功则返回dict"""
     post_data = {
-        'tagId':'semesterBar13572391471Semester',
         'dataType':'semesterCalendar',
-        'value':str(now_semesterid),
-        'empty':'false'
     }
-    response = session.post(URL[2], post_data)
+    #将得到的数据转换为json
+    response = login_session.post('http://eams.uestc.edu.cn/eams/dataQuery.action', post_data)
     response_text = response.text
     response_text = response.text.replace('yearDom', '"yearDom"')
     response_text = response_text.replace('termDom', '"termDom"')
@@ -141,6 +86,7 @@ def get_semesterid(session, now_semesterid):
             i += 1
         else:
             break
+    #json转为dict并提取为有用的数据
     semesterid_data = json.loads(response_text)['semesters']
     ret = {}
     for i in semesterid_data:
@@ -148,9 +94,9 @@ def get_semesterid(session, now_semesterid):
             ret.update({'%s-%s' % (j['schoolYear'], j['name']):j['id']})
     return ret
 
-
+'''
 def save_score(file_name, score_data):
-    '''保存成绩'''
+    """保存成绩"""
     try:
         os.remove(file_name)
     except Exception:
@@ -195,7 +141,6 @@ while True:
 # 全局常量
 URL = (
     'http://eams.uestc.edu.cn/eams/teach/grade/course/person.action',
-    'http://eams.uestc.edu.cn/eams/teach/grade/course/person!search.action?semesterId=%d&projectType=',
     'http://eams.uestc.edu.cn/eams/dataQuery.action',
     'http://eams.uestc.edu.cn/eams/teach/grade/course/person!search.action?semesterId=%d'
 )
@@ -226,3 +171,4 @@ else:
     print('[OK]')
     print('数据已写入out.xlsx')
     #send_message(__score_data__, ['plusls@qq.com'])
+'''
