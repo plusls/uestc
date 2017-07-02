@@ -1,7 +1,7 @@
 """setup.py"""
 from setuptools import setup, find_packages
 
-__version__ = "1.1.2"
+__version__ = "1.1.2.1"
 __author__ = "plusls<plusls@qq.com>"
 __name__ = "uestc"
 __doc__ = "一个和电子科大有关的模块"

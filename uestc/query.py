@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 """查询信息"""
 import json
-from .exceptions import QueryScoreError
+from .exceptions import QueryError
 from bs4 import BeautifulSoup
 __all__ = ['get_now_semesterid', 'get_semesterid_data', 'get_score']
 
@@ -61,7 +61,7 @@ def get_now_semesterid(login_session):
     response = login_session.get('http://eams.uestc.edu.cn/eams/teach/grade/course/person.action')
     data = __get_mid_text(response.text, 'semesterId=', '&')
     if data[1] == -1:
-        raise QueryScoreError('当前semesterid获取失败')
+        raise QueryError('当前semesterid获取失败')
     ret = int(data[0])
     return ret
 
@@ -91,7 +91,10 @@ def get_semesterid_data(login_session):
         else:
             break
     # json转为dict并提取为有用的数据
-    semesterid_data = json.loads(response_text)['semesters']
+    try:
+        semesterid_data = json.loads(response_text)['semesters']
+    except json.decoder.JSONDecodeError:
+        raise QueryError('当前账户登录已过期，请重新登录')
     ret = {}
     for i in semesterid_data:
         for j in semesterid_data[i]:
