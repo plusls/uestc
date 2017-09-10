@@ -25,8 +25,7 @@ def get_score(login_session, semester):
     semester样例：2015-2016-2
     返回一个list的嵌套
     格式为
-    [[学年学期,课程代码,课程序号,课程名称,课程类别,学分,总评成绩,补考总评,最终,绩点]]
-    最后一行为加权平均值"""
+    [[学年学期,课程代码,课程序号,课程名称,课程类别,学分,总评成绩,补考总评,最终,绩点]]"""
     semesterid_data = get_semesterid_data(login_session)
     response = login_session.get('http://eams.uestc.edu.cn/eams/teach/grade/course/person!search.action?semesterId=%d' % semesterid_data[semester])
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -39,21 +38,7 @@ def get_score(login_session, semester):
         ret.append(result[i * 10 : i * 10 + 10])
         for j in range(len(ret[i])):
             ret[i][j] = ret[i][j].string
-    average_gpa = 0
-    average_score = 0
-    sum_credit = 0
-    for score_info in ret:
-        sum_credit += int(score_info[5])
-        average_score += int(score_info[8]) * int(score_info[5])
-        average_gpa += int(score_info[9]) * int(score_info[5])
-    if sum_credit > 0:
-        average_score /= sum_credit
-        average_gpa /= sum_credit
-    tmp = ['None'] * 10
-    tmp[5] = str(sum_credit)
-    tmp[8] = '%.3f' % average_score
-    tmp[9] = '%.3f' % average_gpa
-    ret.append(tmp)
+
     return ret
 
 def get_now_semesterid(login_session):

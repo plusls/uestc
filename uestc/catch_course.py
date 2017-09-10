@@ -8,11 +8,11 @@ import requests
 
 __all__ = ["get_open_entrance", "choose_course",
            "catch_course", "display_catch_course_result"]
-__CATCH_COURSE_URL = "http://eams.uestc.edu.cn/eams/stdElectCourse!batchOperator.action?profileId="
-
+__CATCH_COURSE_POST_URL = "http://eams.uestc.edu.cn/eams/stdElectCourse!batchOperator.action?profileId="
+__CATCH_COURSE_URL = "http://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id="
 __EXIT_THREAD = False
 __CATCH_COURSE_RESULT = []
-__EXIT_TEXT_LIST = ['本批次', '只开放给', '学分已达上限', '现在未到选课时间']
+__EXIT_TEXT_LIST = ['本批次', '只开放给', '学分已达上限', '现在未到选课时间', '超过限选门数', '冲突']
 #__EXIT_TEXT_LIST = ['本批次', '只开放给', '学分已达上限']
 
 
@@ -43,8 +43,8 @@ def __get_open_url_data(login_session, todo_list, ret_list, thread_lock, display
 
         thread_lock.release()
         while True:
-            response = login_session.get(__CATCH_COURSE_URL + str(now_get))
 
+            response = login_session.get(__CATCH_COURSE_URL + str(now_get))
             if '学号' in response.text:
                 thread_lock.acquire()
                 ret_list.append(now_get)
@@ -55,7 +55,7 @@ def __get_open_url_data(login_session, todo_list, ret_list, thread_lock, display
                 break
 
 
-def get_open_entrance(login_session, start_entrance=0, end_entrance=2000, max_thread=50,
+def get_open_entrance(login_session, start_entrance=0, end_entrance=2000, max_thread=100,
                       display_result=False):
     """获取选课通道 返回开放通道的list"""
     ret_list = []
@@ -81,10 +81,14 @@ def get_open_entrance(login_session, start_entrance=0, end_entrance=2000, max_th
 def choose_course(login_session, entrance, class_id, choose):
     """选课 class_id为int"""
     postdata = {'operator0': '%s:%s:0' % (str(class_id), str(choose).lower())}
+    # 不写会报未到选课时间
+    login_session.get(__CATCH_COURSE_URL + str(entrance))
     response = login_session.post(
-        __CATCH_COURSE_URL + str(entrance), data=postdata)
+        __CATCH_COURSE_POST_URL + str(entrance), data=postdata)
     info, end = __get_mid_text(
         response.text, 'text-align:left;margin:auto;">', '</br>')
+    
+    #现在未到选课时间格式不同 单独处理
     if '现在未到选课时间' in response.text:
         info = '现在未到选课时间，无法选课！'
     elif end == -1:
@@ -119,24 +123,7 @@ def __catch_course(login_session, entrance, class_id, thread_name,
             __CATCH_COURSE_RESULT.append(info)
             thread_lock.release()
             break
-        elif '网络错误' in info:
-            if display_text:
-                print('jesession已经过期 正在获取jesession')
-            while True:
-                try:
-                    response = login_session.get(
-                        url=__CATCH_COURSE_URL + str(entrance))
-                except requests.exceptions.ConnectionError:
-                    if display_text:
-                        print('获取获取jesession失败：网络错误！')
-                    continue
-                if '(possibly due to' not in response.text:
-                    if display_text:
-                        print('获取获取jesession成功')
-                    break
-                else:
-                    if display_text:
-                        print('获取获取jesession失败：傻逼你电抽风了！')
+
         thread_lock.release()
         time.sleep(sleep)
 
