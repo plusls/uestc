@@ -99,7 +99,7 @@ def choose_course(login_session, entrance, class_id, choose):
 
 
 def __catch_course(login_session, entrance, class_id, thread_name,
-                   thread_lock, ret_dict, choose, sleep, display_text):
+                   thread_lock, ret_dict, choose, sleep, display_text, force):
     count = 0
     exit_thread = False
     while True:
@@ -107,11 +107,16 @@ def __catch_course(login_session, entrance, class_id, thread_name,
         info = choose_course(login_session, entrance, class_id, choose)
         count += 1
         if display_text:
-            print(thread_name + '正在进行第%d次尝试' % (count, ) + info)
+            thread_lock.acquire()
+            print('%s正在进行第%d次尝试\n%s' % (thread_name, count, info))
+            thread_lock.release()
 
         for exit_text in __EXIT_TEXT_LIST:
             if exit_text in info:
-                ret_dict[class_id][entrance] = 1
+                if force == True and exit_text == '现在未到选课时间':
+                    continue
+                else:
+                    ret_dict[class_id][entrance] = 1
                 break
         if '成功' in info:
             ret_dict[class_id][entrance] = 0
@@ -127,9 +132,8 @@ def __catch_course(login_session, entrance, class_id, thread_name,
         thread_lock.release()
         time.sleep(sleep)
 
-
 def catch_course(login_session, entrance_list, class_id_list, choose=True, sleep=0, max_thread=5,
-                 display_text=False):
+                 display_text=False, force=False):
     """抢课
     该函数执行后除非所有课程抢到，否则不会结束
     以及该函数会捕获中断信号
@@ -157,7 +161,7 @@ def catch_course(login_session, entrance_list, class_id_list, choose=True, sleep
                             login_session, entrance,
                             class_id, '[%d-%d-Thread-%d]' % (
                                 class_id, entrance, (i + 1)),
-                            thread_lock, ret_dict, choose, sleep, display_text)))
+                            thread_lock, ret_dict, choose, sleep, display_text, force)))
                 threads[-1].start()
 
     for thread in threads:
