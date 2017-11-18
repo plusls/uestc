@@ -2,7 +2,7 @@
 """查询信息"""
 import json
 from .exceptions import QueryError
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 __all__ = ['get_now_semesterid', 'get_semesterid_data', 'get_score']
 
 
@@ -33,6 +33,11 @@ def get_score(login_session, semester):
     ret = []
 
     for i in range(len(result)):
+        result[i].string = "".join(list(filter(lambda x: isinstance(x, NavigableString), result[i].descendants)))
+        # 特殊情况下,名为'td'的标签内部可能嵌套有其他标签
+        # 如: "<td>微积分I<span style="color:red;">(重修)</span></td>"
+        # 此时result[i].string值为None，在下一步中调用时会出现错误:"AttributeError: 'NoneType' object has no attribute 'replace'"
+        # 通过上面的均一化处理，保证result[i].string不为None
         result[i].string = result[i].string.replace('\n', '').replace('\r', '').replace('\t', '').replace(' ', '')
     for i in range(len(result) // 10):
         ret.append(result[i * 10 : i * 10 + 10])
