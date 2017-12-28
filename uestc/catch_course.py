@@ -7,9 +7,11 @@ import requests
 
 
 __all__ = ["get_open_entrance", "choose_course",
-           "catch_course", "display_catch_course_result"]
+           "catch_course", "display_catch_course_result", "change_class_cash"]
 __CATCH_COURSE_POST_URL = "http://eams.uestc.edu.cn/eams/stdElectCourse!batchOperator.action?profileId="
 __CATCH_COURSE_URL = "http://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id="
+__CHANGE_CLASS_CASH_URL = "http://eams.uestc.edu.cn/eams/stdVirtualCashElect!changeVirtualCash.action"
+__ENTRANCE_CLASS_LIST_URL = "http://eams.uestc.edu.cn/eams/stdElectCourse!data.action?profileId="
 __EXIT_THREAD = False
 __CATCH_COURSE_RESULT = []
 __EXIT_TEXT_LIST = ['本批次', '只开放给', '学分已达上限', '现在未到选课时间', '超过限选门数', '冲突']
@@ -77,21 +79,73 @@ def get_open_entrance(login_session, start_entrance=0, end_entrance=2000, max_th
     ret_list.sort()
     return ret_list
 
+def get_entrance_class(login_session, entrance):
+    """获取当前通道的选课"""
+    try:
+        # 不写会报未到选课时间
+        login_session.get(__CATCH_COURSE_URL + str(entrance))
+        response = login_session.get(__ENTRANCE_CLASS_LIST_URL + str(entrance))
+        class_data_text= response.text
+    except Exception as e:
+        print(e)
+        return []
+    class_data_text=class_data_text[18:-1]
+    replace_list = ['id', 'no', 'name', 'code', 'credits', 'courseId', 'startWeek', 'endWeek', 'courseTypeId', 'courseTypeName', 'courseTypeCode', 'scheduled','hasTextBook', 'period',  'weekHour', 'revertCount', 'withdrawable', 'textbooks', 'teachers', 'crossCollege', 'campusCode', 'campusName','remark', 'electCourseRemark', 'arrangeInfo', 'weekDay', 'weekState', 'startUnit', 'endUnit', 'weekStateText', 'rooms', 'examArrange']
+    for replace_text in replace_list:
+        class_data_text = class_data_text.replace(replace_text, "'%s'" % (replace_text, ))
+    class_data_text = class_data_text.replace('true', 'True')
+    class_data_text = class_data_text.replace('false', 'False')
+    # replace出错
+    class_data_text = class_data_text.replace("'weekState'Text", "'weekStateText'")
+    
+    
+    # 危险！
+    class_data_list = eval(class_data_text)
+    return class_data_list
+    
 
-def choose_course(login_session, entrance, class_id, choose):
-    """选课 class_id为int"""
-    postdata = {'operator0': '%s:%s:0' % (str(class_id), str(choose).lower())}
-    # 不写会报未到选课时间
-    login_session.get(__CATCH_COURSE_URL + str(entrance))
-    response = login_session.post(
-        __CATCH_COURSE_POST_URL + str(entrance), data=postdata)
-    info, end = __get_mid_text(
-        response.text, 'text-align:left;margin:auto;">', '</br>')
+def change_class_cash(login_session, entrance, class_id, cash):
+    """该变课程分数"""
+    postdata = {'profileId': entrance, 'lessonId': class_id, 'changeCost': cash}
+    try:
+        # 不写会报未到选课时间
+        login_session.get(__CATCH_COURSE_URL + str(entrance))
+        response = login_session.post(__CHANGE_CLASS_CASH_URL, data=postdata)
+        info = response.text
+    except Exception as e:
+        print(e)
+        info = ''
+
+    if info == '':
+        info = '网络错误！'
+    info = info.replace(' ', '').replace('\n', '').replace('\t', '')
+    info += '  id:%s  entrance:%s' % (class_id, entrance)
+    return info
+
+def choose_course(login_session, entrance, class_id, choose, cash=0):
+    """选课 class_id为int
+    class_id int 课程id
+    choose bool 选课或退课
+    score int 投分
+    """
+    postdata = {'operator0': '%s:%s:0' % (str(class_id), str(choose).lower()), 'virtualCashCost%d' % (class_id, ): cash}
+    try:
+        # 不写会报未到选课时间
+        login_session.get(__CATCH_COURSE_URL + str(entrance))
+        response = login_session.post(
+            __CATCH_COURSE_POST_URL + str(entrance), data=postdata)
+        info = response.text.partition('text-align:left;margin:auto;">')[3].partition('</br>')[0]
+    except Exception as e:
+        print(e)
+        info = ''
+
+    #info, end = __get_mid_text(
+    #    response.text, 'text-align:left;margin:auto;">', '</br>')
     
     #现在未到选课时间格式不同 单独处理
     if '现在未到选课时间' in response.text:
         info = '现在未到选课时间，无法选课！'
-    elif end == -1:
+    elif info == '':
         info = '网络错误！'
     info = info.replace(' ', '').replace('\n', '').replace('\t', '')
     info += '  id:%s  entrance:%s' % (class_id, entrance)
