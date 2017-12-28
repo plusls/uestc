@@ -59,7 +59,12 @@ def __get_open_url_data(login_session, todo_list, ret_list, thread_lock, display
 
 def get_open_entrance(login_session, start_entrance=0, end_entrance=2000, max_thread=100,
                       display_result=False):
-    """获取选课通道 返回开放通道的list"""
+    """获取选课通道 返回开放通道的list
+    start_entrance 最小的通道
+    end_entrance 最大的通道
+    max_thread 最大线程数
+    display_result 是否实时返回扫描状态
+    """
     ret_list = []
     todo_list = []
     threads = []
@@ -80,7 +85,10 @@ def get_open_entrance(login_session, start_entrance=0, end_entrance=2000, max_th
     return ret_list
 
 def get_entrance_class(login_session, entrance):
-    """获取当前通道的选课"""
+    """获取当前通道的选课
+    可以获取当前通道的课程列表
+    entrance 当前通道
+    """
     try:
         # 不写会报未到选课时间
         login_session.get(__CATCH_COURSE_URL + str(entrance))
@@ -105,7 +113,10 @@ def get_entrance_class(login_session, entrance):
     
 
 def change_class_cash(login_session, entrance, class_id, cash):
-    """该变课程分数"""
+    """该变课程权重
+    class_id 课程id 可用 get_entrance_class获取详细信息
+    cash 要修改成的选课权重
+    """
     postdata = {'profileId': entrance, 'lessonId': class_id, 'changeCost': cash}
     try:
         # 不写会报未到选课时间
