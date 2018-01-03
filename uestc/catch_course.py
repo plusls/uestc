@@ -133,19 +133,22 @@ def change_class_cash(login_session, entrance, class_id, cash):
     info += '  id:%s  entrance:%s' % (class_id, entrance)
     return info
 
-def choose_course(login_session, entrance, class_id, choose, cash=0):
+def choose_course(login_session, entrance, class_id, choose, cash=None):
     """选课 class_id为int
     class_id int 课程id
     choose bool 选课或退课
     score int 投分
     """
-    postdata = {'operator0': '%s:%s:0' % (str(class_id), str(choose).lower()), 'virtualCashCost%d' % (class_id, ): cash}
+    postdata = {'operator0': '%s:%s:0' % (str(class_id), str(choose).lower())}
+    if cash != None:
+        postdata['virtualCashCost' + str(class_id)] = cash
+    
     try:
         # 不写会报未到选课时间
         login_session.get(__CATCH_COURSE_URL + str(entrance))
         response = login_session.post(
             __CATCH_COURSE_POST_URL + str(entrance), data=postdata)
-        info = response.text.partition('text-align:left;margin:auto;">')[3].partition('</br>')[0]
+        info = response.text.partition('text-align:left;margin:auto;">')[2].partition('</br>')[0]
     except Exception as e:
         print(e)
         info = ''
