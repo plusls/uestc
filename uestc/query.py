@@ -3,8 +3,25 @@
 import json
 from .exceptions import QueryError
 from bs4 import BeautifulSoup, NavigableString
-__all__ = ['get_now_semesterid', 'get_semesterid_data', 'get_score']
+__all__ = ['get_now_semesterid', 'get_semesterid_data', 'get_score', 'Class']
 
+
+class Course:
+    def __init__(self, semester, code, id, name, type, credit, default_score, resit_score, score, point):
+        self.semester = semester
+        self.code = code
+        self.id = id
+        self.name = name
+        self.type = type
+        self.credit = credit
+        self.default_score = default_score
+        self.resit_score = resit_score
+        self.score = score
+        self.point = point
+
+    def __str__(self):
+        return 'Course(semester={}, code={}, id={}, name={}, type={}, credit={}, default_score={}, resit_score={}, score={}, point={})'.format(self.semester, self.code, self.id, self.name, self.type, self.credit, self.default_score, self.resit_score, self.score, self.point)
+    __repr__ = __str__
 
 
 def __get_mid_text(text, left_text, right_text, start=0):
@@ -19,36 +36,40 @@ def __get_mid_text(text, left_text, right_text, start=0):
     return (text[left:right], right)
 
 
-
 def get_score(login_session, semester):
     """查询成绩
     semester样例：2015-2016-2
-    返回一个list的嵌套
-    格式为
-    [[学年学期,课程代码,课程序号,课程名称,课程类别,学分,总评成绩,补考总评,最终,绩点]]"""
+    返回一个course list的嵌套"""
     semesterid_data = get_semesterid_data(login_session)
-    response = login_session.get('http://eams.uestc.edu.cn/eams/teach/grade/course/person!search.action?semesterId=%d' % semesterid_data[semester])
+    response = login_session.get(
+        'http://eams.uestc.edu.cn/eams/teach/grade/course/person!search.action?semesterId=%d' % semesterid_data[semester])
     soup = BeautifulSoup(response.text, 'html.parser')
     result = soup.find_all('td')
     ret = []
 
     for i in range(len(result)):
-        result[i].string = "".join(list(filter(lambda x: isinstance(x, NavigableString), result[i].descendants)))
+        result[i].string = "".join(
+            list(filter(lambda x: isinstance(x, NavigableString), result[i].descendants)))
         # 特殊情况下,名为'td'的标签内部可能嵌套有其他标签
         # 如: "<td>微积分I<span style="color:red;">(重修)</span></td>"
         # 此时result[i].string值为None，在下一步中调用时会出现错误:"AttributeError: 'NoneType' object has no attribute 'replace'"
         # 通过上面的均一化处理，保证result[i].string不为None
-        result[i].string = result[i].string.replace('\n', '').replace('\r', '').replace('\t', '').replace(' ', '')
+        result[i].string = result[i].string.replace('\n', '').replace(
+            '\r', '').replace('\t', '').replace(' ', '')
     for i in range(len(result) // 10):
-        ret.append(result[i * 10 : i * 10 + 10])
-        for j in range(len(ret[i])):
-            ret[i][j] = ret[i][j].string
+        course_data = result[i * 10: i * 10 + 10]
+        for j in range(len(course_data)):
+            course_data[j] = course_data[j].string
+        course = Course(*course_data)
+        ret.append(course)
 
     return ret
 
+
 def get_now_semesterid(login_session):
     """获取当前semesterid并返回int 失败则抛出异常"""
-    response = login_session.get('http://eams.uestc.edu.cn/eams/teach/grade/course/person.action')
+    response = login_session.get(
+        'http://eams.uestc.edu.cn/eams/teach/grade/course/person.action')
     data = __get_mid_text(response.text, 'semesterId=', '&')
     if data[1] == -1:
         raise QueryError('当前semesterid获取失败')
@@ -59,10 +80,11 @@ def get_now_semesterid(login_session):
 def get_semesterid_data(login_session):
     """获取学期对应的semesterid信息 成功则返回dict"""
     post_data = {
-        'dataType':'semesterCalendar',
+        'dataType': 'semesterCalendar',
     }
     # 将得到的数据转换为json
-    response = login_session.post('http://eams.uestc.edu.cn/eams/dataQuery.action', post_data)
+    response = login_session.post(
+        'http://eams.uestc.edu.cn/eams/dataQuery.action', post_data)
     response_text = response.text
 
     response_text = response_text.replace(':[{id', '":[{id')
@@ -78,8 +100,6 @@ def get_semesterid_data(login_session):
     response_text = response_text.replace('termIndex', '"termIndex"')
     response_text = response_text.replace('semesterId', '"semesterId"')
 
-
-
     # json转为dict并提取为有用的数据
     try:
         semesterid_data = json.loads(response_text)['semesters']
@@ -89,8 +109,9 @@ def get_semesterid_data(login_session):
     ret = {}
     for i in semesterid_data:
         for j in semesterid_data[i]:
-            ret.update({'%s-%s' % (j['schoolYear'], j['name']):j['id']})
+            ret.update({'%s-%s' % (j['schoolYear'], j['name']): j['id']})
     return ret
+
 
 '''
 def save_score(file_name, score_data):
