@@ -1,10 +1,7 @@
 """setup.py"""
 from setuptools import setup, find_packages
+from uestc import __version__, __author__, __name__, __doc__
 
-__version__ = "1.1.2.5"
-__author__ = "plusls<plusls@qq.com>"
-__name__ = "uestc"
-__doc__ = "一个和电子科大有关的模块"
 
 setup(author=__author__,
       author_email='plusls@qq.com',

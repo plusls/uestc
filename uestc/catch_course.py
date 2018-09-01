@@ -18,18 +18,6 @@ __EXIT_TEXT_LIST = ['本批次', '只开放给', '学分已达上限', '现在�
 #__EXIT_TEXT_LIST = ['本批次', '只开放给', '学分已达上限']
 
 
-def __get_mid_text(text, left_text, right_text, start=0):
-    """获取中间文本"""
-    left = text.find(left_text, start)
-    if left == -1:
-        return ('', -1)
-    left += len(left_text)
-    right = text.find(right_text, left)
-    if right == -1:
-        return ('', -1)
-    return (text[left:right], right)
-
-
 def __get_open_url_data(login_session, todo_list, ret_list, thread_lock, display_result):
     """读取选课网页"""
     while True:
@@ -153,9 +141,6 @@ def choose_course(login_session, entrance, class_id, choose, cash=None):
         print(e)
         info = ''
 
-    #info, end = __get_mid_text(
-    #    response.text, 'text-align:left;margin:auto;">', '</br>')
-    
     #现在未到选课时间格式不同 单独处理
     if '现在未到选课时间' in response.text:
         info = '现在未到选课时间，无法选课！'

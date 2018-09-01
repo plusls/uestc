@@ -64,7 +64,11 @@ def get_semesterid_data(login_session):
     # 将得到的数据转换为json
     response = login_session.post('http://eams.uestc.edu.cn/eams/dataQuery.action', post_data)
     response_text = response.text
-    response_text = response.text.replace('yearDom', '"yearDom"')
+
+    response_text = response_text.replace(':[{id', '":[{id')
+    response_text = response_text.replace('}],y', '}],"y')
+    response_text = response_text.replace('{y0', '{"y0')
+    response_text = response_text.replace('yearDom', '"yearDom"')
     response_text = response_text.replace('termDom', '"termDom"')
     response_text = response_text.replace('semesters', '"semesters"')
     response_text = response_text.replace('schoolYear', '"schoolYear"')
@@ -73,17 +77,14 @@ def get_semesterid_data(login_session):
     response_text = response_text.replace('yearIndex', '"yearIndex"')
     response_text = response_text.replace('termIndex', '"termIndex"')
     response_text = response_text.replace('semesterId', '"semesterId"')
-    i = 0
-    while True:
-        if response_text.find('y' + str(i)) != -1:
-            response_text = response_text.replace('y%d' % i, '"y%d"' % i)
-            i += 1
-        else:
-            break
+
+
+
     # json转为dict并提取为有用的数据
     try:
         semesterid_data = json.loads(response_text)['semesters']
     except json.decoder.JSONDecodeError:
+        print(response_text)
         raise QueryError('当前账户登录已过期，请重新登录')
     ret = {}
     for i in semesterid_data:
