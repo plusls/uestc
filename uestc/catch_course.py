@@ -9,7 +9,7 @@ import json
 from bs4 import BeautifulSoup
 
 __all__ = ["DEBUG", "get_open_entrance", "choose_course",
-           "catch_course", "display_catch_course_result", "change_class_cash", "get_choose_class_list", "get_entrance_student_count", "get_course_data"]
+           "catch_course", "display_catch_course_result", "change_class_cash", "get_choose_class_list", "get_entrance_student_count", "get_course_data", "get_platform_cash"]
 __CATCH_COURSE_POST_URL = "http://eams.uestc.edu.cn/eams/stdElectCourse!batchOperator.action?profileId="
 __CATCH_COURSE_URL = "http://eams.uestc.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id="
 __CHANGE_CLASS_CASH_URL = "http://eams.uestc.edu.cn/eams/stdVirtualCashElect!changeVirtualCash.action"
@@ -17,6 +17,7 @@ __ENTRANCE_CLASS_LIST_URL = "http://eams.uestc.edu.cn/eams/stdElectCourse!data.a
 __ENTRANCE_STUDENT_COUNT_URL = "http://eams.uestc.edu.cn/eams/stdElectCourse!queryStdCount.action?profileId="
 __CLASS_DATA_URL = "http://eams.uestc.edu.cn/eams/electionLessonInfo.action?lesson.id="
 __CASH_DATA_URL = "http://eams.uestc.edu.cn/eams/stdVirtualCashElect!getLessonCost.action?lessonId="
+__PLATFORM_CASH_URL = "http://eams.uestc.edu.cn/eams/stdVirtualCashElect!getCurrentCash.action?profileId="
 __EXIT_THREAD = False
 __CATCH_COURSE_RESULT = []
 __EXIT_TEXT_LIST = ['本批次', '只开放给', '学分已达上限', '现在未到选课时间', '超过限选门数', '冲突']
@@ -202,6 +203,36 @@ def get_entrance_student_count(login_session, entrance):
     student_count_list = json.loads(student_count_text)
     return student_count_list
 
+def get_platform_cash(login_session, entrance):
+    """获取平台剩余权重
+    entrance 任意一个通道
+    """
+    try:
+        # 处理重复登录
+        while True:
+            req_text = login_session.get(
+                '{}{}'.format(__CATCH_COURSE_URL, entrance)).text
+            if '当前用户存在重复登录的情况' not in req_text:
+                break
+        req_text = login_session.get('{}{}'.format(__PLATFORM_CASH_URL, entrance)).text
+        platform_cash_text = req_text
+    except Exception as e:
+        if DEBUG:
+            traceback.print_exc()
+        return []
+    # 返回结果
+    # { cashes : [{id : '615138', coins : '0', type : 'PLATFORMA'},{id : '615139', coins : '30', type : 'PLATFORMB'},{id : '615140', coins : '100', type : 'PLATFORMC'}] }
+    replace_list = ['cashes', 'id', 'coins', 'type']
+    for replace_text in replace_list:
+        platform_cash_text = platform_cash_text.replace(
+            '{} :'.format(replace_text), '"{}":'.format(replace_text))
+
+    platform_cash_text = platform_cash_text.replace("'", '"')
+    platform_cash_list = json.loads(platform_cash_text)['cashes']
+    ret = {}
+    for platform_cash in platform_cash_list:
+        ret[platform_cash['type'].split('PLATFORM')[1]] = int(platform_cash['coins'])
+    return ret
 
 def get_entrance_class(login_session, entrance):
     """获取当前通道的选课

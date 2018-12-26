@@ -62,6 +62,26 @@ uestc.exceptions.LoginError: 密码错误
 
 获取选课通道
 
+#### change_class_cash
+
+修改选中的课程的权重
+
+#### get_choose_class_list
+
+获取选中的课程的列表
+
+#### get_entrance_student_count
+
+获取当前选课的学生数量
+
+#### get_course_data
+
+获取课程信息，包含自己投入的权重
+
+#### get_platform_cash
+
+获取各个平台剩余的权重
+
 ### uestc.query
 
 查询模块
