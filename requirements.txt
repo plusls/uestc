@@ -1,2 +1,4 @@
 requests>=2.0
 bs4>=0.0.1
+pycryptodome >= 3.7
+Crypto >= 1.4

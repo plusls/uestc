@@ -28,20 +28,23 @@ def main():
     type_black_list += []
 
     name_black_list = []
-    name_black_list += []
+    name_black_list += ['实习']
 
     score = 0
     credit = 0
     for semester in semesterid_data:
         course_list += uestc.query.get_score(login_session, semester)
     #course_list.append(uestc.query.Course('', '', '', 'test', '', '16', '', '', '90', ''))
+
     for course in course_list:
         next_course = False
         for type_name in type_black_list:
             if type_name in course.type:
                 next_course = True
                 break
+
         for name in name_black_list:
+            print(name)
             if name in course.name:
                 next_course = True
                 break

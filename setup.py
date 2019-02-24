@@ -14,7 +14,7 @@ setup(author=__author__,
       description=__doc__,
       url="https://github.com/plusls/uestc",
       install_requires=['bs4',
-                        'requests'],
+                        'requests', 'Crypto', 'pycryptodome'],
       classifiers=[
           'Environment :: Console',
           'Programming Language :: Python :: 3',

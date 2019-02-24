@@ -2,7 +2,7 @@
 """电子科技大学登陆模块"""
 import requests
 from .exceptions import LoginError
-
+from .encrypt import encrypt_AES
 
 def __get_mid_text(text, left_text, right_text, start=0):
     """获取中间文本"""
@@ -30,6 +30,8 @@ def login(num, password):
 
     execution, end = __get_mid_text(
         response.text, '"execution" value="', '"', end)
+    key, end = __get_mid_text(response.text, 'pwdDefaultEncryptSalt = "', '";')
+    password = encrypt_AES(b'a'*64 + password.encode('utf-8'), key.encode('utf-8'), b'a'*16).decode('utf-8')
     # 构造表格
     postdata = {
         'username': num,
