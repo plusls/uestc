@@ -302,8 +302,12 @@ def choose_course(login_session, entrance, class_id, choose, cash=None):
         postdata['virtualCashCost' + str(class_id)] = cash
 
     try:
+        # 新版系统不允许提前选课 必须先访问这个页面
+        # 否则会 非规定时间进行的选课，系统均视为测试数据，并将于正式选课前全部清除。
+        login_session.get("http://eams.uestc.edu.cn/eams/stdElectCourse.action")
         # 不写会报未到选课时间
-        login_session.get(__CATCH_COURSE_URL + str(entrance))
+        login_session.get((__CATCH_COURSE_URL) + str(entrance))
+        # 选课
         response = login_session.post(
             __CATCH_COURSE_POST_URL + str(entrance), data=postdata)
         info = response.text.partition(
