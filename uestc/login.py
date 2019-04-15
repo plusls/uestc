@@ -30,8 +30,8 @@ def login(num, password):
 
     execution, end = __get_mid_text(
         response.text, '"execution" value="', '"', end)
-    # key, end = __get_mid_text(response.text, 'pwdDefaultEncryptSalt = "', '";')
-    # password = encrypt_AES(b'a'*64 + password.encode('utf-8'), key.encode('utf-8'), b'a'*16).decode('utf-8')
+    key, end = __get_mid_text(response.text, 'pwdDefaultEncryptSalt = "', '";')
+    password = encrypt_AES(b'a'*64 + password.encode('utf-8'), key.encode('utf-8'), b'a'*16).decode('utf-8')
     # 构造表格
     postdata = {
         'username': num,
