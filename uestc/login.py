@@ -18,7 +18,7 @@ def __get_mid_text(text, left_text, right_text, start=0):
 
 def login(num, password):
     """登陆并返回一个requests模块的session"""
-    url = 'http://idas.uestc.edu.cn/authserver/login?service='
+    url = 'https://idas.uestc.edu.cn/authserver/login?service='
     # 获取lt,execution
     new_session = requests.session()
     new_session.cookies.clear()
@@ -30,8 +30,8 @@ def login(num, password):
 
     execution, end = __get_mid_text(
         response.text, '"execution" value="', '"', end)
-    # key, end = __get_mid_text(response.text, 'pwdDefaultEncryptSalt = "', '";')
-    # password = encrypt_AES(b'a'*64 + password.encode('utf-8'), key.encode('utf-8'), b'a'*16).decode('utf-8')
+    key, end = __get_mid_text(response.text, 'pwdDefaultEncryptSalt = "', '";')
+    password = encrypt_AES(b'a'*64 + password.encode('utf-8'), key.encode('utf-8'), b'a'*16).decode('utf-8')
     # 构造表格
     postdata = {
         'username': num,
